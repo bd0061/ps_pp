@@ -12,7 +12,7 @@ size_t dno_u(unsigned long long a);
 
 #define FORMATCHECK_IO(X,Y,Z) if(iocheck((X),Z) > (Y)) (Y) = iocheck(X,Z)
 
-int iocheck(long long v, int type);
+size_t iocheck(long long v, int type);
 
 
 

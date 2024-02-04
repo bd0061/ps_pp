@@ -91,7 +91,7 @@ void readvals()
 			}
 			goto defaultcolor;
 		}
-		perror("configreader: fopen:");
+		perror("configreader: fopen");
 		exit(EXIT_FAILURE);
 	}
 

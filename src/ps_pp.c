@@ -342,6 +342,8 @@ void getbtime()
 		line++;
     }
 
+    fclose(sysstat);
+
     if (line != 5 )
     {
 		freeList(head);
@@ -349,11 +351,10 @@ void getbtime()
 		regfree(&regex);
 		endwin();
     	fprintf(stderr, "error reading btime\n");
-    	fclose(sysstat);
     	exit(EXIT_FAILURE);
     }
 	
-    fclose(sysstat);
+    
 
 
 }
@@ -465,10 +466,10 @@ void print_stats()
 	int onebar = 0;
 	double scaled_cpu_percent = (cpu_percent * barsize) / 100;
 	
-	char hatethis1[1024];
-	int len1 = snprintf(hatethis1,sizeof(hatethis1),"CPU: %4.1lf%%         ",cpu_percent);
+	char CPUbuf[1024];
+	int len1 = snprintf(CPUbuf,sizeof(CPUbuf),"CPU: %4.1lf%%         ",cpu_percent);
 	
-	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s",hatethis1);
+	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s",CPUbuf);
 	mvprintw(GLOBAL_CURSE_OFFSET,len1,"[");
 	int i;
 	for(i = 0; i < barsize; i++)
@@ -503,10 +504,10 @@ void print_stats()
    
 	double scaled_percent_memory = (percent_memory * barsize)/100;
 	
-	char hatethis2[1024];
-	int len2 = snprintf(hatethis2,sizeof(hatethis2),"Mem %.2lfGB/%.2lfGB  ", (double)(memtotal-memavailable)/1000000,(double)memtotal/1000000);
+	char membuf[1024];
+	int len2 = snprintf(membuf,sizeof(membuf),"Mem %.2lfGB/%.2lfGB  ", (double)(memtotal-memavailable)/1000000,(double)memtotal/1000000);
 
-	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s",hatethis2);
+	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s",membuf);
 
 	mvprintw(GLOBAL_CURSE_OFFSET,len2,"[");
 	i = 0;
@@ -543,9 +544,9 @@ void print_stats()
 
 	double scaled_percent_swap = (percent_swap * barsize) / 100;
 
-	char hatethis3[1024];
+	char swapbuf[1024];
 
-	int len3 = snprintf(hatethis3,sizeof(hatethis3),
+	int len3 = snprintf(swapbuf,sizeof(swapbuf),
 		"Swap %.2lf%s/%.2lfGB ", 
 		swaptotal - swapfree < swaptotal/2 ? (double)(swaptotal-swapfree)/1000 : (double)(swaptotal-swapfree)/1000000,
 		swaptotal - swapfree < swaptotal/2 ? "KB": "GB",
@@ -553,7 +554,7 @@ void print_stats()
 	
 
 
-	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s",hatethis3);
+	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s",swapbuf);
 
 	mvprintw(GLOBAL_CURSE_OFFSET,len3,"[");
 	onebar = 0;
@@ -643,29 +644,29 @@ void print_header(char ** buffer, int buflength)
 	final[0] = '\0';
 	for(int i = 0; i < buflength; i++)
 		{
-			if 		(strcmp(buffer[i],"PID") == 0)			sprintf(final + strlen(final),"%-*s %s",formatvals[0],"PID",tabbord);
-			else if (strcmp(buffer[i],"NAME") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[1],"NAME",tabbord);
-			else if (strcmp(buffer[i],"STATE") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[2],"STATE",tabbord);
-			else if (strcmp(buffer[i],"PPID") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[3],"PPID",tabbord);
-			else if (strcmp(buffer[i],"TTY") == 0) 			sprintf(final + strlen(final),"%-*s %s",formatvals[4],"TTY",tabbord);
-			else if (strcmp(buffer[i],"UTIME") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[5],"UTIME",tabbord);
-			else if (strcmp(buffer[i],"STIME") == 0)  		sprintf(final + strlen(final),"%-*s %s",formatvals[6],"STIME",tabbord);
-			else if (strcmp(buffer[i],"PRIO") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[7],"PRIO",tabbord);
-			else if (strcmp(buffer[i],"NICE") == 0)  		sprintf(final + strlen(final),"%-*s %s",formatvals[8],"NICE",tabbord);
-			else if (strcmp(buffer[i],"THREADNO") == 0) 	sprintf(final + strlen(final),"%-*s %s",formatvals[9],"THREADNO",tabbord);
-			else if (strcmp(buffer[i],"VIRT") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[10],"VIRT",tabbord);
-			else if (strcmp(buffer[i],"RES") == 0) 			sprintf(final + strlen(final),"%-*s %s",formatvals[11],"RES",tabbord);
-			else if (strcmp(buffer[i],"OWNER") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[12],"OWNER",tabbord);
-			else if (strcmp(buffer[i],"MEM%") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[13],"MEM%",tabbord);
-			else if (strcmp(buffer[i],"CPU%") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[14],"CPU%",tabbord);
-			else if (strcmp(buffer[i],"START") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[15],"START",tabbord);
-			else if (strcmp(buffer[i],"SID") == 0) 			sprintf(final + strlen(final),"%-*s %s",formatvals[16],"SID",tabbord);
-			else if (strcmp(buffer[i],"PGRP") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[17],"PGRP",tabbord);
-			else if (strcmp(buffer[i],"C_WRITE") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[18],"C_WRITE",tabbord);
-			else if (strcmp(buffer[i],"IO_READ") == 0) 		sprintf(final + strlen(final),"%-*s %s",formatvals[19],"IO_READ",tabbord);
-			else if (strcmp(buffer[i],"IO_WRITE") == 0) 	sprintf(final + strlen(final),"%-*s %s",formatvals[20],"IO_WRITE",tabbord);
-			else if (strcmp(buffer[i],"IO_READ/s") == 0) 	sprintf(final + strlen(final),"%-*s %s",formatvals[21],"IO_READ/s",tabbord);
-			else if (strcmp(buffer[i],"IO_WRITE/s") == 0) 	sprintf(final + strlen(final),"%-*s %s",formatvals[22],"IO_WRITE/s",tabbord);
+			if 		(strcmp(buffer[i],"PID") == 0)			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[0],"PID",tabbord);
+			else if (strcmp(buffer[i],"NAME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[1],"NAME",tabbord);
+			else if (strcmp(buffer[i],"STATE") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[2],"STATE",tabbord);
+			else if (strcmp(buffer[i],"PPID") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[3],"PPID",tabbord);
+			else if (strcmp(buffer[i],"TTY") == 0) 			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[4],"TTY",tabbord);
+			else if (strcmp(buffer[i],"UTIME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[5],"UTIME",tabbord);
+			else if (strcmp(buffer[i],"STIME") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[6],"STIME",tabbord);
+			else if (strcmp(buffer[i],"PRIO") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[7],"PRIO",tabbord);
+			else if (strcmp(buffer[i],"NICE") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[8],"NICE",tabbord);
+			else if (strcmp(buffer[i],"THREADNO") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[9],"THREADNO",tabbord);
+			else if (strcmp(buffer[i],"VIRT") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[10],"VIRT",tabbord);
+			else if (strcmp(buffer[i],"RES") == 0) 			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[11],"RES",tabbord);
+			else if (strcmp(buffer[i],"OWNER") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[12],"OWNER",tabbord);
+			else if (strcmp(buffer[i],"MEM%") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[13],"MEM%",tabbord);
+			else if (strcmp(buffer[i],"CPU%") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[14],"CPU%",tabbord);
+			else if (strcmp(buffer[i],"START") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[15],"START",tabbord);
+			else if (strcmp(buffer[i],"SID") == 0) 			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[16],"SID",tabbord);
+			else if (strcmp(buffer[i],"PGRP") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[17],"PGRP",tabbord);
+			else if (strcmp(buffer[i],"C_WRITE") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[18],"C_WRITE",tabbord);
+			else if (strcmp(buffer[i],"IO_READ") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[19],"IO_READ",tabbord);
+			else if (strcmp(buffer[i],"IO_WRITE") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[20],"IO_WRITE",tabbord);
+			else if (strcmp(buffer[i],"IO_READ/s") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[21],"IO_READ/s",tabbord);
+			else if (strcmp(buffer[i],"IO_WRITE/s") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[22],"IO_WRITE/s",tabbord);
 		}
 		mvprintw(GLOBAL_CURSE_OFFSET++,0,"%s\n",final);
 		printequals(buffer,buflength);
@@ -682,35 +683,35 @@ void print_data(char ** buffer, int buflength, PROCESS_LL * start)
 			if 		(strcmp(buffer[i],"PID") == 0)	
 			{	
 				PROCESSINFO t = start->info;
-				sprintf( final + strlen(final),"%-*d ",formatvals[0],start->info.pid);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*d ",formatvals[0],start->info.pid);
 			}
-			else if (strcmp(buffer[i],"NAME") == 0) 		sprintf( final + strlen(final),"%-*s %s",formatvals[1],start->info.name, tabbord);
-			else if (strcmp(buffer[i],"STATE") == 0) 		sprintf( final + strlen(final),"%-*c %s",formatvals[2],start->info.state,tabbord);
-			else if (strcmp(buffer[i],"PPID") == 0) 		sprintf( final + strlen(final),"%-*d %s",formatvals[3],start->info.ppid,tabbord);
-			else if (strcmp(buffer[i],"TTY") == 0) 			sprintf( final + strlen(final),"%-*s %s",formatvals[4],start->info.ttyname,tabbord);
-			else if (strcmp(buffer[i],"UTIME") == 0) 		sprintf( final + strlen(final),"%-*d %s",formatvals[5],start->info.utime,tabbord);
-			else if (strcmp(buffer[i],"STIME") == 0)  		sprintf( final + strlen(final),"%-*d %s",formatvals[6],start->info.stime,tabbord);
-			else if (strcmp(buffer[i],"PRIO") == 0) 		sprintf( final + strlen(final),"%-*ld %s",formatvals[7],start->info.prio,tabbord);
-			else if (strcmp(buffer[i],"NICE") == 0)  		sprintf( final + strlen(final),"%-*ld %s",formatvals[8],start->info.nice,tabbord);
-			else if (strcmp(buffer[i],"THREADNO") == 0) 	sprintf( final + strlen(final),"%-*ld %s",formatvals[9],start->info.threadno,tabbord);
+			else if (strcmp(buffer[i],"NAME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[1],start->info.name, tabbord);
+			else if (strcmp(buffer[i],"STATE") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*c %s",formatvals[2],start->info.state,tabbord);
+			else if (strcmp(buffer[i],"PPID") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*d %s",formatvals[3],start->info.ppid,tabbord);
+			else if (strcmp(buffer[i],"TTY") == 0) 			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[4],start->info.ttyname,tabbord);
+			else if (strcmp(buffer[i],"UTIME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*lu %s",formatvals[5],start->info.utime,tabbord);
+			else if (strcmp(buffer[i],"STIME") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*lu %s",formatvals[6],start->info.stime,tabbord);
+			else if (strcmp(buffer[i],"PRIO") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*ld %s",formatvals[7],start->info.prio,tabbord);
+			else if (strcmp(buffer[i],"NICE") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*ld %s",formatvals[8],start->info.nice,tabbord);
+			else if (strcmp(buffer[i],"THREADNO") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*ld %s",formatvals[9],start->info.threadno,tabbord);
 			else if (strcmp(buffer[i],"VIRT") == 0) 		
 			{
-				sprintf( final + strlen(final),"%-*lu %s",formatvals[10],(start->info.virt)/1024,tabbord); //kilobajti
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*lu %s",formatvals[10],(start->info.virt)/1024,tabbord); //kilobajti
 		
 
 
 			}
 			else if (strcmp(buffer[i],"RES") == 0) 			
 			{
-				sprintf( final + strlen(final),"%-*ld %s",formatvals[11],start->info.res * (pgsz/1024),tabbord); // konvertuj stranice u kb*/
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*ld %s",formatvals[11],start->info.res * (pgsz/1024),tabbord); // konvertuj stranice u kb*/
 			}
-			else if (strcmp(buffer[i],"OWNER") == 0) 		sprintf( final + strlen(final),"%-*s %s",formatvals[12],start->info.user,tabbord);
-			else if (strcmp(buffer[i],"MEM%") == 0) 		sprintf( final + strlen(final),"%-*.2lf %s",formatvals[13],((double)(start->info.res * (pgsz/1024))/memtotal) * 100,tabbord);
+			else if (strcmp(buffer[i],"OWNER") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[12],start->info.user,tabbord);
+			else if (strcmp(buffer[i],"MEM%") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*.2lf %s",formatvals[13],((double)(start->info.res * (pgsz/1024))/memtotal) * 100,tabbord);
 			else if (strcmp(buffer[i],"CPU%") == 0)
 			{
 				unsigned long cur = start->cpuinfo.utime_cur + start->cpuinfo.stime_cur;
 				unsigned long prev = start->cpuinfo.utime_prev + start->cpuinfo.stime_prev;
-				sprintf( final + strlen(final),"%-*.2lf %s",formatvals[14],((double)(cur-prev)/clock_ticks_ps) * 100, tabbord);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*.2lf %s",formatvals[14],((double)(cur-prev)/clock_ticks_ps) * 100, tabbord);
 
 			}
 				
@@ -719,15 +720,15 @@ void print_data(char ** buffer, int buflength, PROCESS_LL * start)
 				struct tm s;
 				getcurrenttime(&s);
 				if(s.tm_year != start->info.start_struct.tm_year)
-					sprintf( final + strlen(final),"%-*d %s",formatvals[15],start->info.start_struct.tm_year + 1900,tabbord);
+					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*d %s",formatvals[15],start->info.start_struct.tm_year + 1900,tabbord);
 				else if(s.tm_mon == start->info.start_struct.tm_mon && s.tm_mday == start->info.start_struct.tm_mday)
-					sprintf( final + strlen(final),"%s%d:%s%d %s",
+					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%d:%s%d %s",
 						start->info.start_struct.tm_hour < 10 ? "0" : "",start->info.start_struct.tm_hour,
 						start->info.start_struct.tm_min < 10 ? "0" : "" ,start->info.start_struct.tm_min,
 						tabbord);
 				else
 				{
-					sprintf( final + strlen(final),"%s%d%s %s",months[start->info.start_struct.tm_mon],start->info.start_struct.tm_mday,start->info.start_struct.tm_mday < 10 ? " " : "" ,tabbord);
+					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%d%s %s",months[start->info.start_struct.tm_mon],start->info.start_struct.tm_mday,start->info.start_struct.tm_mday < 10 ? " " : "" ,tabbord);
 				}
 			}
 			else if (strcmp(buffer[i],"SID") == 0) sprintf( final + strlen(final),"%-*d %s",formatvals[16],start->info.sid,tabbord);
@@ -736,32 +737,32 @@ void print_data(char ** buffer, int buflength, PROCESS_LL * start)
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.cancelled_write_bytes,start->ioinfo.io_blocked,0);
-				sprintf( final + strlen(final),"%-*s %s",formatvals[18], br, tabbord);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[18], br, tabbord);
 			}
 			else if (strcmp(buffer[i],"IO_READ") == 0) 
 			{
 
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.read_bytes_cur,start->ioinfo.io_blocked,0);
-				sprintf( final + strlen(final),"%-*s %s",formatvals[19], br, tabbord);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[19], br, tabbord);
 			}
 			else if (strcmp(buffer[i],"IO_WRITE") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.write_bytes_cur,start->ioinfo.io_blocked,0);
-				sprintf( final + strlen(final),"%-*s %s",formatvals[20], br, tabbord);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[20], br, tabbord);
 			}
 			else if (strcmp(buffer[i],"IO_READ/s") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.read_bytes_cur - start->ioinfo.read_bytes_prev,start->ioinfo.io_blocked,1);
-				sprintf( final + strlen(final),"%-*s %s",formatvals[21], br, tabbord);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[21], br, tabbord);
 			}
 			else if (strcmp(buffer[i],"IO_WRITE/s") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.write_bytes_cur - start->ioinfo.write_bytes_prev,start->ioinfo.io_blocked,1);
-				sprintf( final + strlen(final),"%-*s %s",formatvals[22], br, tabbord);
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%-*s %s",formatvals[22], br, tabbord);
 			}
 		}
 		
@@ -872,8 +873,7 @@ int main(int argc, char ** argv)
 	jFormat = 0;
 	ioFormat = 0;
 	
-	snprintf(INFOMSG,sizeof(INFOMSG),"");
-	long long diff = 0;
+	snprintf(INFOMSG,sizeof(INFOMSG)," ");
     fps = NULL;
     fps_size = 0;
 	selectedLine = 0;
@@ -902,7 +902,6 @@ int main(int argc, char ** argv)
 	
 
 
-	int pid_count = 0;
 	int pid_args[32767];
 	
 	
@@ -931,7 +930,7 @@ int main(int argc, char ** argv)
 	struct option n = {"-n","--name",NULL,0};
 	
 	struct arg_parse a = {{&f,&p,&u,&n},4};
-	parseopts(argc,argv,&a);
+	parseopts(argv,&a);
 	
 
 	sanitycheck(f.buffer,f.no, formats, format_no,
@@ -973,7 +972,6 @@ int main(int argc, char ** argv)
 	pthread_create(&cursorUpdateThread,NULL,cursorUpdate,NULL);
 	while(1)
 	{ 
-		nosleep:
 		formatvals[15] = 5;
 		long long afterCritical = getTimeInMilliseconds();
 		
@@ -1067,7 +1065,7 @@ int main(int argc, char ** argv)
 			ioFormat = 0;
 			clscFormat = 0;
 			customFormat = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to id mode\t",fps[selectedLine].pid);
+			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to id mode\t");
 			SUCCESS = 1;
 			countDown = 5;
 			char ** cl;
@@ -1103,7 +1101,7 @@ int main(int argc, char ** argv)
 			jFormat = 0;
 			clscFormat = 0;
 			customFormat = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to io mode\t",fps[selectedLine].pid);
+			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to io mode\t");
 			SUCCESS = 1;
 			countDown = 5;
 			
@@ -1144,7 +1142,7 @@ int main(int argc, char ** argv)
 			clscFormat = 1;
 			customFormat = 0;
 			
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to classic mode\t",fps[selectedLine].pid);
+			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to classic mode\t");
 			SUCCESS = 1;
 			countDown = 5;
 

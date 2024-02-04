@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler flags
-CFLAGS = -Werror
+CFLAGS = -Werror 
 
 # Source and object directories
 SRC_DIR = src

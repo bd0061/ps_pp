@@ -119,11 +119,11 @@ int testoption(char * s, struct arg_parse * a, int * optind)
 	return -1;
 }
 
-int newargcheck(char * s, struct arg_parse * a, int optind)
+int newargcheck(char * s, struct arg_parse * a)
 {
 	for(int i = 0; i < a->option_no; i++)
 	{		
-		if((strcmp(s,(a->options)[i]->short_name) == 0 || strcmp(s,(a->options)[i]->long_name) == 0) /*&& i != optind*/)
+		if((strcmp(s,(a->options)[i]->short_name) == 0 || strcmp(s,(a->options)[i]->long_name) == 0))
 		{
 			return 1;
 		}
@@ -135,14 +135,14 @@ int newargcheck(char * s, struct arg_parse * a, int optind)
 /* algoritam za parsiranje argumenata
 
 */
-void parseopts(int argc, char ** argv, struct arg_parse * argp)
+void parseopts(char ** argv, struct arg_parse * argp)
 {
 	++argv; //preskoci ime samog programa
 	if(*argv == NULL)
 	{
 		return;
 	}
-	parseout:
+	parseout: ;
 	
 	int optind;
 	if(testoption(*argv,argp,&optind) == -1)
@@ -169,7 +169,7 @@ void parseopts(int argc, char ** argv, struct arg_parse * argp)
 	++argv;
 	while(*argv != NULL)
 	{
-		if(newargcheck(*argv,argp,optind))
+		if(newargcheck(*argv,argp))
 		{
 			if(countargs == 0) // vec novi switch bez bar jednog argumenta za prethodni
 			{

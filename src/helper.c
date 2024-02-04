@@ -10,7 +10,7 @@ extern long clock_ticks_ps;
 extern int formatvals[23];
 
 
-int iocheck(long long v,int type)
+size_t iocheck(long long v,int type)
 {
     int t = 0;
     double vd;
@@ -54,7 +54,7 @@ size_t dno_u(unsigned long long a)
 
 void chomp(char * s)
 {
-    for(int i = 0; i < strlen(s); i++)
+    for(size_t i = 0; i < strlen(s); i++)
     {
         if(s[i] == '\n')
         {
@@ -66,7 +66,7 @@ void chomp(char * s)
 
 int in(int * arr , int a, int l)
 {
-    for(size_t i = 0; i < l; i++)
+    for(int i = 0; i < l; i++)
     {
         if(arr[i] == a)
             return 1;
@@ -202,12 +202,12 @@ void printList(PROCESS_LL* head) {
         }*/
 
         //x:1 = y:100
-        if(start->info.pid == 24223)
+        /*if(start->info.pid == 24223)
         {
         unsigned long cur = start->cpuinfo.utime_cur + start->cpuinfo.stime_cur;
         unsigned long prev = start->cpuinfo.utime_prev + start->cpuinfo.stime_prev;
         printf("[%d] %s %.2lf CPU%\n",start->info.pid, start->info.name, ((double)(cur-prev) / clock_ticks_ps) * 100);
-        }
+        }*/
 
     }
 }
@@ -239,7 +239,9 @@ int comparePID(const void *a, const void *b) {
 
 
 void sortmem(PROCESS_LL **head) {
- 
+     if (*head == NULL) {
+        return;
+    }
     size_t count = 0;
     PROCESS_LL *temp = *head;
     while (temp != NULL) {
@@ -287,6 +289,9 @@ int compareCPU(const void *a, const void *b) {
 }
 
 void sortCPU(PROCESS_LL **head) {
+    if (*head == NULL) {
+        return;
+    }
     size_t count = 0;
     PROCESS_LL *temp = *head;
     while (temp != NULL) {
@@ -318,6 +323,9 @@ void sortCPU(PROCESS_LL **head) {
 
 void sortPID(PROCESS_LL **head)
 {
+    if (*head == NULL) {
+        return;
+    }
     size_t count = 0;
     PROCESS_LL *temp = *head;
     while (temp != NULL) {

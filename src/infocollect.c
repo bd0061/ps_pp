@@ -168,7 +168,6 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
     allprocs = 0;
     countprocs = 0;
     const char *PROC = "/proc"; 
-    int max;
     DIR *dir = opendir(PROC);
     if (dir == NULL) {
         perror("findprocs: fopen:");
@@ -191,7 +190,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             
             PROCESSINFO t;
             
-            char fullpath[128];
+            char fullpath[300];
             snprintf(fullpath,sizeof(fullpath),"/proc/%s/stat", entry->d_name);
             FILE * infofile = fopen(fullpath,"r");
 
@@ -395,11 +394,14 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 strncpy(tname,"?",sizeof(tname) - 1);
                 tname[sizeof(tname) - 1] = '\0';
                 strcpy(t.ttyname,tname);
-                goto done;
+            }
+            else
+            {
+                strcpy(t.ttyname,tname + 5);
             }
             
-            strcpy(t.ttyname,tname + 5);
-            done:
+
+            done: ;
 
             long procsecs = (t.starttime)/clock_ticks_ps;
 
