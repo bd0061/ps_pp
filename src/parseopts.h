@@ -21,12 +21,9 @@ struct arg_parse
 };
 
 
-int process_exists(int pid);
 void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int format_no,
 				 char ** pidbuffer, int pidlen,
 				 char ** userbuffer, int userlen);
-int testoption(char * s, struct arg_parse * a, int * optind);
-int newargcheck(char * s, struct arg_parse * a);
 void parseopts(char ** argv, struct arg_parse * argp);
 
 #endif

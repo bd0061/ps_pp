@@ -10,6 +10,27 @@ extern long clock_ticks_ps;
 extern int formatvals[23];
 
 
+int alnum(char * s)
+{
+    int n  =strlen(s);
+    for(int i = 0; i < n; i++)
+    {
+        if(!(s[i] >= '0' && s[i] <= '9'))
+            return 0;
+    }
+    return 1;
+}
+
+
+
+
+void truncate_str(char * s, int n)
+{
+    for(int i = n; i < strlen(s); i++)
+        s[i] = '\0';
+
+}
+
 size_t iocheck(long long v,int type)
 {
     int t = 0;
@@ -183,7 +204,7 @@ void removeElement(PROCESS_LL** head, int pidToRemove) {
 
 void printList(PROCESS_LL* head) {
     PROCESS_LL* start = head;
-    for (;start != NULL; start = start->next) {
+    for (;start != NULL; start = start->next) { //debuf ufnckija
         /*if(start->info.pid == 7073)
         {
             if(start->ioinfo.io_blocked)
@@ -281,11 +302,25 @@ int compareCPU(const void *a, const void *b) {
 
     unsigned long prevA = nodeA->cpuinfo.utime_prev + nodeA->cpuinfo.stime_prev;
     unsigned long prevB = nodeB->cpuinfo.utime_prev + nodeB->cpuinfo.stime_prev;
+    
 
+    
     double formulaA = ((double)(curA - prevA) / clock_ticks_ps) * 100;
     double formulaB = ((double)(curB - prevB) / clock_ticks_ps) * 100;
 
-    return (int)(formulaB - formulaA);
+    if(formulaA < formulaB)
+    {
+        return 1;
+    }
+    else if(formulaA > formulaB)
+    {
+        return -1;
+    }
+    else 
+    {
+        return 0;
+    }
+    //return (int)(formulaB - formulaA);
 }
 
 void sortCPU(PROCESS_LL **head) {

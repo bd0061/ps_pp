@@ -4,20 +4,10 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <errno.h>
-
+#include "structures.h"
+#include "helper.h"
 
 #include "parseopts.h"
-#include "regex_module.h"
-
-
-
-int process_exists(int pid)
-{
-    struct stat sts;
-    char buffer[256];
-    snprintf(buffer,sizeof(buffer),"/proc/%d", pid);
-    return !(stat(buffer, &sts) == -1 && errno == ENOENT);
-}
 
 /* nakon uspesnog parsiranja argumenata, ova funkcija radi sledece:
  * 1) proverava da li su sve snabdevene proces informacije legitimne(postoje kao opcija)
@@ -45,7 +35,7 @@ void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int forma
 			fprintf(stderr,"Exhaustive list of all supported options for formatting:\n[");
 			for(int k = 0; k < format_no; k++)
 			{
-				fprintf(stderr,"%s%c\n",formats[k], k != format_no - 1 ? ',' : ']');
+				fprintf(stderr,"%s%s",formats[k], k != format_no - 1 ? "," : "]\n");
 			}
 			exit(EXIT_FAILURE);
 		}
@@ -54,15 +44,11 @@ void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int forma
 
 	for(int k = 0; k < pidlen; k++)
 	{
-		if(regexec(&regex, pidbuffer[k], 0, NULL, 0) != 0)
+		puts(pidbuffer[k]);
+		if(!alnum(pidbuffer[k]))
 		{
 			fprintf(stderr,"Invalid pid argument: %s\n",pidbuffer[k]);
 			exit(EXIT_FAILURE);
-		}
-		if(!process_exists(atoi(pidbuffer[k])))
-		{
-			/*fprintf(stderr,"pid %s not present on the system\n",pidbuffer[k]);
-			exit(EXIT_FAILURE);*/
 		}
 	}
 
@@ -106,7 +92,7 @@ void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int forma
 }
 
 
-int testoption(char * s, struct arg_parse * a, int * optind)
+static int testoption(char * s, struct arg_parse * a, int * optind)
 {
 	for(int i = 0; i < a->option_no; i++)
 	{
@@ -119,7 +105,7 @@ int testoption(char * s, struct arg_parse * a, int * optind)
 	return -1;
 }
 
-int newargcheck(char * s, struct arg_parse * a)
+static int newargcheck(char * s, struct arg_parse * a)
 {
 	for(int i = 0; i < a->option_no; i++)
 	{		

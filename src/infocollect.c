@@ -13,8 +13,6 @@
 
 #include "structures.h"
 #include "helper.h"
-#include "regex_module.h"
-
 
 extern int formatvals[23];
 extern long clock_ticks_ps;
@@ -146,12 +144,13 @@ void getmeminfo(long long * memtotal, long long * memfree, long long * memavaila
         c++;
 
     }
+    fclose(fp);
     if(c != 16)
     {
         fprintf(stderr,"unknown error reading meminfo");
         exit(EXIT_FAILURE);
     }
-    fclose(fp);
+    
 
 }
 
@@ -176,7 +175,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
     struct dirent *entry;
     
     while ((entry = readdir(dir)) != NULL) {
-        if(entry->d_type == DT_DIR && regexec(&regex, entry->d_name, 0, NULL, 0) == 0)
+        if(entry->d_type == DT_DIR && alnum(entry->d_name))
         {
             allprocs++;
 
@@ -193,12 +192,11 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             char fullpath[300];
             snprintf(fullpath,sizeof(fullpath),"/proc/%s/stat", entry->d_name);
             FILE * infofile = fopen(fullpath,"r");
-
             //ekstremno redak slucaj: proces je ubijen onog momenta kada pokusamo da citamo njegove fajlove
             //zato gledamo da errno bude samo iz sistemskih razloga(memorijske greske itd)
             if(infofile == NULL) 
             {
-                if(errno == ENOENT) //process prekinut upravo sad
+                if(errno == ENOENT || errno == EACCES) //process prekinut upravo sad
                 {
                     continue;
                 }
@@ -241,12 +239,14 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             &(t.virt),&(t.res)
             );
 
-
+            fclose(infofile);
 
             snprintf(fullpath,sizeof(fullpath),"/proc/%s/cmdline", entry->d_name);
             FILE * fullcommand = fopen(fullpath,"r");
             if(fullcommand == NULL)
             {
+                if(errno == ENOENT || errno == EACCES)
+                    continue;
                 perror("fopen");
                 exit(EXIT_FAILURE);
             }
@@ -262,6 +262,8 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                     exit(EXIT_FAILURE);
                 }
             }
+            fclose(fullcommand);
+           
 
             chomp(buffer);
             strncpy(t.name,buffer,sizeof(buffer)-1);
@@ -279,8 +281,6 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 }
                 if(!ok)
                 {
-                    fclose(infofile);
-                    fclose(fullcommand);
                     continue;
                 }
             }
@@ -290,10 +290,8 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 FILE * statusfile = fopen(_statuspath,"r");
                 if(statusfile == NULL)
                 {
-                    if(errno == ENOENT) //proces prekinut upravo sad
+                    if(errno == ENOENT || errno == EACCES) //proces prekinut upravo sad
                     {
-                        fclose(infofile);
-                        fclose(fullcommand);
                         continue;
                     }
                     perror("Error opening status file");
@@ -311,12 +309,16 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                     }
                     line++;
                 }
+
+                fclose(statusfile);
+
+
                 if(line != 9)
                 {
                     fprintf(stderr,"status read error\n");
                     exit(EXIT_FAILURE);
                 }
-                // ... //
+
                 struct passwd *pw = getpwuid(_uid);
                 struct passwd pwcopy = *pw;
                 if(pw == NULL)
@@ -328,7 +330,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             //end
 
             int ok_usr = 0;
-            if(user_count != 0) //korisnik zeli da filtrira po korisnicima
+            if(user_count != 0) //korisnik zeli da filtrira po vlasnicima
             {
                 for(int i = 0; i < user_count; i++)
                 {
@@ -340,9 +342,6 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 }
                 if(!ok_usr)
                 {
-                    fclose(infofile);
-                    fclose(fullcommand);
-                    fclose(statusfile);
                     continue;
                 }
 
@@ -379,9 +378,6 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             {
                 if(errno == ENOENT) 
                 {
-                    fclose(infofile);
-                    fclose(fullcommand);
-                    fclose(statusfile);
                     continue; //process dead mid read
                 }
                 perror("findprocs: readlink");
@@ -415,10 +411,6 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
 
             if(iostatus == -1)
             {
-
-                fclose(infofile);
-                fclose(fullcommand);
-                fclose(statusfile);
                 continue;
             }
             else if(iostatus == -2)
@@ -439,6 +431,8 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             tcpu.utime_cur = t.utime;
             tcpu.stime_cur = t.stime;
             
+
+            truncate_str(t.name,200);
             addElement(head,t,tio,tcpu);
             if(!tio.io_blocked)
             {
@@ -448,9 +442,6 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             }
             handleformat(t);
 
-            fclose(infofile);
-            fclose(fullcommand);
-            fclose(statusfile);
         }
     }
 

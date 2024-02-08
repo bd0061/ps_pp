@@ -16,7 +16,7 @@ Kompilacija programa se vrsi jednostavnim pozivom iz root direktorijuma sa koman
 ```make```
 Nakon čega će se u direktorijumu *obj* generisati objektni fajlovi, a u *bin* konačan program.
 
-Za kompajliranje je potrebna biblioteka posix niti (**-lpthread** flag) i softverskog paketa ncurses za korisnički interfejs (**-lncurses** flag).
-Obe biblioteke bi trebalo biti već preinstalirane na većini Linux sistema.
+Za kompajliranje je potrebna biblioteka softverskog paketa ncurses za korisnički interfejs (**-lncurses** flag).
+Ova biblioteka bi trebalo biti već preinstalirana na većini Linux sistema.
 ## Implementacija 
 Ovaj program, kao i *ps*, funkcioniše tako što čita podatke iz virtuelnog fajl sistema **procfs** kojeg dinamički generiše kernel: https://man7.org/linux/man-pages/man5/proc.5.html

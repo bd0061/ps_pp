@@ -2,6 +2,8 @@
 #define HELPER_H
 #include<stddef.h>
 
+int alnum(char * s);
+void truncate_str(char * s, int n);
 size_t dno(long long a);
 size_t dno_u(unsigned long long a);
 

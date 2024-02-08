@@ -19,11 +19,21 @@ char MEMSORT_KEY;
 char CPUSORT_KEY;
 char NORMALSORT_KEY;
 char CUSTOM_KEY;
-
+char BACK_KEY;
+char HELP_KEY;
+char END_KEY;
 #define PS_PP_COLORS 7
-#define PS_PP_KEYS 9
+#define PS_PP_KEYS 12
 
-
+static int isempty(char * s)
+{
+	for(int i = 0; s[i] != '\0'; i++)
+	{
+		if(s[i] != '\t' && s[i] != ' ' && s[i] != '\n')
+			return 0;
+	}
+	return 1;
+}
 
 void readvals()
 {
@@ -44,19 +54,29 @@ void readvals()
 	int CPUSORT_KEY_CHECK = 0;
 	int NORMALSORT_KEY_CHECK = 0;
 	int CUSTOM_KEY_CHECK = 0;
-
-	char * home = getenv("HOME");
-
+	int BACK_KEY_CHECK = 0;
+	int HELP_KEY_CHECK = 0;
+	int END_KEY_CHECK = 0;
+	int defenv = 1;
+	
+	char * home = getenv("XDG_CONFIG_HOME");
+	FILE * configreader = NULL;
 	if(home == NULL)
 	{
-		fprintf(stderr,"Couldn't read home environment variable\n");
-		exit(EXIT_FAILURE);
+		defenv = 0;
+		home = getenv("HOME");
+		if(home == NULL)
+		{
+			goto defaultcolor;
+		}
 	}
-
 	char fullpath[1024];
-	snprintf(fullpath,sizeof(fullpath),"%s/.config/ps_pp.conf",home);
+	if(defenv)
+		snprintf(fullpath,sizeof(fullpath),"%s/ps_pp.conf",home);
+	else 
+		snprintf(fullpath,sizeof(fullpath),"%s/.config/ps_pp.conf",home);
 
-	FILE * configreader = fopen(fullpath,"r");
+	configreader = fopen(fullpath,"r");
 
 	if(configreader == NULL)
 	{
@@ -84,7 +104,10 @@ void readvals()
 				"#MEMSORT_KEY=K\n"
 				"#CPUSORT_KEY=K\n"
 				"#NORMALSORT_KEY=K\n"	
-				"#CUSTOM_KEY=K\n"		
+				"#CUSTOM_KEY=K\n"	
+				"#BACK_KEY=K\n"	
+				"#HELP_KEY=K\n"
+				"#END_KEY=K\n"
 				);
 				
 				fclose(configskeleton);
@@ -96,11 +119,13 @@ void readvals()
 	}
 
 	char line[1024];
+	int i = 0;
+	int failed = 0;
 	while(fgets(line,sizeof(line),configreader) != NULL)
 	{
+		i++;
 		if(line[0] == '#') continue;
 		
-
 		if(sscanf(line,"COLOR_BG=(%d,%d,%d)\n",&COLOR_BG[0],&COLOR_BG[1],&COLOR_BG[2]))
 		{
 			COLOR_BG_CHECK = 1;
@@ -165,9 +190,29 @@ void readvals()
 		{
 			CUSTOM_KEY_CHECK = 1;
 		}
+		else if(sscanf(line,"BACK_KEY=%c",&BACK_KEY))
+		{
+			BACK_KEY_CHECK = 1;
+		}
+		else if(sscanf(line,"HELP_KEY=%c",&HELP_KEY))
+		{
+			HELP_KEY_CHECK = 1;
+		}
+		else if(sscanf(line,"HELP_KEY=%c",&END_KEY))
+		{
+			END_KEY_CHECK = 1;
+		}
+		else if(!isempty(line))
+		{
+			fprintf(stderr,"%s:%d unknown configuration parameter: %s\n",fullpath, i, line);
+			failed = 1;
+		}
 	}
-	
-
+	if(failed)
+	{
+		fclose(configreader);
+		exit(EXIT_FAILURE);
+	}
 
 	defaultcolor:
 	 if(!COLOR_BG_CHECK)
@@ -188,7 +233,7 @@ void readvals()
 	 }
 	 if(!COLOR_INFOTEXT_CHECK)
 	 {
-	 	COLOR_INFOTEXT[0] = 400; COLOR_INFOTEXT[1] = 400; COLOR_INFOTEXT[2] = 1000;
+	 	COLOR_INFOTEXT[0] = 400; COLOR_INFOTEXT[1] = 400; COLOR_INFOTEXT[2] = 900;
 	 }
 	 if(!COLOR_INFO_SUC_CHECK)
 	 {
@@ -225,10 +270,19 @@ void readvals()
 	 
 	 if(!CUSTOM_KEY_CHECK)
 	 	CUSTOM_KEY = 'x';
+	 
+	 if(!BACK_KEY_CHECK)
+	 	BACK_KEY = 'a';
+	 
+	 if(!HELP_KEY_CHECK)
+	 	HELP_KEY = 'h';
+
+	 if(!END_KEY_CHECK)
+	 	END_KEY = 'z';
 
 	int * a[PS_PP_COLORS] = {COLOR_BG,COLOR_TEXT,COLOR_PRCNT_BAR,COLOR_SELECTPROC,COLOR_INFOTEXT,COLOR_INFO_SUC,COLOR_INFO_ERR};
 
-	char b[PS_PP_KEYS] = {QUIT_KEY,KILL_KEY,IO_KEY,ID_KEY,CLASSIC_KEY,MEMSORT_KEY,CPUSORT_KEY,NORMALSORT_KEY,CUSTOM_KEY};
+	char b[PS_PP_KEYS] = {QUIT_KEY,KILL_KEY,IO_KEY,ID_KEY,CLASSIC_KEY,MEMSORT_KEY,CPUSORT_KEY,NORMALSORT_KEY,CUSTOM_KEY,BACK_KEY,HELP_KEY,END_KEY};
 
 
 	for(int i = 0; i < PS_PP_COLORS; i++)
@@ -247,7 +301,7 @@ void readvals()
 	{
 		if(!((b[i] >= 'a' && b[i] <= 'z') || (b[i] >= 'A' && b[i] <= 'Z')))
 		{
-			fprintf(stderr,"configreader: b[%d]=%d not a bindable key ([A-Z][a-z] only)\n",i,b[i]);
+			fprintf(stderr,"configreader: %d not a bindable key ([A-Z][a-z] only)\n",b[i]);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -263,8 +317,7 @@ void readvals()
 			}
 		}
 	}
-	
-	if(configreader)
+	if(configreader != NULL)
 		fclose(configreader);
 
 

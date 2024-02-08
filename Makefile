@@ -31,7 +31,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 
 # Rule to build the executable
 $(EXECUTABLE): $(OBJ_FILES)
-	$(CC) -lm -lpthread -lncurses $^  -o $@
+	$(CC) -lm -lncurses $^  -o $@
 
 # Clean target
 clean:
