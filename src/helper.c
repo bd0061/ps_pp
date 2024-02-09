@@ -7,7 +7,7 @@
 
 extern long btime;
 extern long clock_ticks_ps;
-extern int formatvals[23];
+extern int formatvals[24];
 
 
 int alnum(char * s)
@@ -245,16 +245,59 @@ void freeList(PROCESS_LL* head) {
     }
 }
 
-int compareByRes(const void *a, const void *b) {
+static int compareByRes(const void *a, const void *b) {
     const PROCESS_LL *nodeA = *(const PROCESS_LL **)a;
     const PROCESS_LL *nodeB = *(const PROCESS_LL **)b;
     return (nodeB->info.res - nodeA->info.res);
 }
 
-int comparePID(const void *a, const void *b) {
+static int comparePID(const void *a, const void *b) {
     const PROCESS_LL *nodeA = *(const PROCESS_LL **)a;
     const PROCESS_LL *nodeB = *(const PROCESS_LL **)b;
     return (nodeA->info.pid - nodeB->info.pid);
+}
+
+static int comparePrio(const void *a, const void *b)
+{
+    const PROCESS_LL * nodeA = *(const PROCESS_LL **)a;
+    const PROCESS_LL * nodeB = *(const PROCESS_LL **)b;
+
+    if(nodeA->info.prio != nodeB->info.prio)
+    {
+        return (nodeB->info.prio - nodeA->info.prio);
+    }
+    
+    return (nodeB->info.nice - nodeA->info.nice);
+
+}
+
+static int compareCPU(const void *a, const void *b) {
+    const PROCESS_LL *nodeA = *(const PROCESS_LL **)a;
+    const PROCESS_LL *nodeB = *(const PROCESS_LL **)b;
+
+    unsigned long curA = nodeA->cpuinfo.utime_cur + nodeA->cpuinfo.stime_cur;
+    unsigned long curB = nodeB->cpuinfo.utime_cur + nodeB->cpuinfo.stime_cur;
+
+    unsigned long prevA = nodeA->cpuinfo.utime_prev + nodeA->cpuinfo.stime_prev;
+    unsigned long prevB = nodeB->cpuinfo.utime_prev + nodeB->cpuinfo.stime_prev;
+    
+
+    
+    double formulaA = ((double)(curA - prevA) / clock_ticks_ps) * 100;
+    double formulaB = ((double)(curB - prevB) / clock_ticks_ps) * 100;
+
+    if(formulaA < formulaB)
+    {
+        return 1;
+    }
+    else if(formulaA > formulaB)
+    {
+        return -1;
+    }
+    else 
+    {
+        return 0;
+    }
 }
 
 
@@ -291,36 +334,6 @@ void sortmem(PROCESS_LL **head) {
     temp->next = NULL;
 
     free(tempArray);
-}
-
-int compareCPU(const void *a, const void *b) {
-    const PROCESS_LL *nodeA = *(const PROCESS_LL **)a;
-    const PROCESS_LL *nodeB = *(const PROCESS_LL **)b;
-
-    unsigned long curA = nodeA->cpuinfo.utime_cur + nodeA->cpuinfo.stime_cur;
-    unsigned long curB = nodeB->cpuinfo.utime_cur + nodeB->cpuinfo.stime_cur;
-
-    unsigned long prevA = nodeA->cpuinfo.utime_prev + nodeA->cpuinfo.stime_prev;
-    unsigned long prevB = nodeB->cpuinfo.utime_prev + nodeB->cpuinfo.stime_prev;
-    
-
-    
-    double formulaA = ((double)(curA - prevA) / clock_ticks_ps) * 100;
-    double formulaB = ((double)(curB - prevB) / clock_ticks_ps) * 100;
-
-    if(formulaA < formulaB)
-    {
-        return 1;
-    }
-    else if(formulaA > formulaB)
-    {
-        return -1;
-    }
-    else 
-    {
-        return 0;
-    }
-    //return (int)(formulaB - formulaA);
 }
 
 void sortCPU(PROCESS_LL **head) {
@@ -379,6 +392,46 @@ void sortPID(PROCESS_LL **head)
     }
 
     qsort(tempArray, count, sizeof(PROCESS_LL *), comparePID);
+
+    *head = tempArray[0];
+    temp = *head;
+    for (size_t i = 1; i < count; i++) {
+        temp->next = tempArray[i];
+        temp = temp->next;
+    }
+    temp->next = NULL;
+
+    free(tempArray);
+
+
+}
+
+void sortPrio(PROCESS_LL **head)
+{
+    if (*head == NULL) {
+        return;
+    }
+    size_t count = 0;
+    PROCESS_LL *temp = *head;
+    while (temp != NULL) {
+        count++;
+        temp = temp->next;
+    }
+    
+    PROCESS_LL **tempArray = (PROCESS_LL **)malloc(count * sizeof(PROCESS_LL *));
+    
+    if (tempArray == NULL) {
+        return;
+    }
+
+    temp = *head;
+    
+    for (size_t i = 0; i < count; i++) {
+        tempArray[i] = temp;
+        temp = temp->next;
+    }
+
+    qsort(tempArray, count, sizeof(PROCESS_LL *), comparePrio);
 
     *head = tempArray[0];
     temp = *head;

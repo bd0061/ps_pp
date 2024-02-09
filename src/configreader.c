@@ -2,6 +2,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <assert.h>
+
+
 int COLOR_BG[3];
 int COLOR_TEXT[3];
 int COLOR_PRCNT_BAR[3];
@@ -22,8 +24,12 @@ char CUSTOM_KEY;
 char BACK_KEY;
 char HELP_KEY;
 char END_KEY;
+char NICEPLUS_KEY;
+char NICEMINUS_KEY;
+char PRIOSORT_KEY;
+
 #define PS_PP_COLORS 7
-#define PS_PP_KEYS 12
+#define PS_PP_KEYS 15
 
 static int isempty(char * s)
 {
@@ -57,7 +63,11 @@ void readvals()
 	int BACK_KEY_CHECK = 0;
 	int HELP_KEY_CHECK = 0;
 	int END_KEY_CHECK = 0;
+	int NICEPLUS_KEY_CHECK = 0;
+	int NICEMINUS_KEY_CHECK = 0;
+	int PRIOSORT_KEY_CHECK = 0;
 	int defenv = 1;
+
 	
 	char * home = getenv("XDG_CONFIG_HOME");
 	FILE * configreader = NULL;
@@ -198,9 +208,21 @@ void readvals()
 		{
 			HELP_KEY_CHECK = 1;
 		}
-		else if(sscanf(line,"HELP_KEY=%c",&END_KEY))
+		else if(sscanf(line,"END_KEY=%c",&END_KEY))
 		{
 			END_KEY_CHECK = 1;
+		}
+		else if(sscanf(line,"NICEPLUS_KEY=%c",&NICEPLUS_KEY))
+		{
+			NICEPLUS_KEY_CHECK = 1;
+		}
+		else if(sscanf(line,"NICEMINUS_KEY=%c",&NICEMINUS_KEY))
+		{
+			NICEMINUS_KEY_CHECK = 1;
+		}
+		else if(sscanf(line,"PRIOSORT_KEY=%c",&PRIOSORT_KEY))
+		{
+			PRIOSORT_KEY_CHECK = 1;
 		}
 		else if(!isempty(line))
 		{
@@ -279,10 +301,19 @@ void readvals()
 
 	 if(!END_KEY_CHECK)
 	 	END_KEY = 'z';
+	 
+	 if(!NICEPLUS_KEY_CHECK)
+	 	NICEPLUS_KEY = 'w';
+	 
+	 if(!NICEMINUS_KEY_CHECK)
+	 	NICEMINUS_KEY = 'e';
+	 
+	 if(!PRIOSORT_KEY_CHECK)
+	 	PRIOSORT_KEY = 'l';
 
 	int * a[PS_PP_COLORS] = {COLOR_BG,COLOR_TEXT,COLOR_PRCNT_BAR,COLOR_SELECTPROC,COLOR_INFOTEXT,COLOR_INFO_SUC,COLOR_INFO_ERR};
 
-	char b[PS_PP_KEYS] = {QUIT_KEY,KILL_KEY,IO_KEY,ID_KEY,CLASSIC_KEY,MEMSORT_KEY,CPUSORT_KEY,NORMALSORT_KEY,CUSTOM_KEY,BACK_KEY,HELP_KEY,END_KEY};
+	char b[PS_PP_KEYS] = {QUIT_KEY,KILL_KEY,IO_KEY,ID_KEY,CLASSIC_KEY,MEMSORT_KEY,CPUSORT_KEY,NORMALSORT_KEY,PRIOSORT_KEY,CUSTOM_KEY,BACK_KEY,HELP_KEY,END_KEY,NICEPLUS_KEY,NICEMINUS_KEY};
 
 
 	for(int i = 0; i < PS_PP_COLORS; i++)

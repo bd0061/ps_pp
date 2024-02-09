@@ -10,11 +10,11 @@
 #include <errno.h>
 #include <unistd.h>
 #include <time.h>
-
+#include <ncurses.h>
 #include "structures.h"
 #include "helper.h"
 
-extern int formatvals[23];
+extern int formatvals[24];
 extern long clock_ticks_ps;
 extern long btime;
 extern unsigned long long cputicks;
@@ -23,7 +23,7 @@ extern unsigned long long countprocs;
 extern long pgsz;
 
 
-int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
+static int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
 {
     char iopath[1024];
     int line = 1;
@@ -77,34 +77,92 @@ int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
 }
 
 
-void handleformat(PROCESSINFO t)
+static void handlemem_unsigned(unsigned long target, char * c, int fno)
 {
-    FORMATCHECK_NUM(t.pid,formatvals[0]);
-    FORMATCHECK_STRING(t.name,formatvals[1]);
-    FORMATCHECK_NUM(t.ppid,formatvals[3]);
-    FORMATCHECK_STRING(t.ttyname,formatvals[4]);
+
+    int len;
+    if(target >= 1073741824LL)
+    {
+        len = snprintf(c,sizeof(c),"%.2lfGB",(double)(target)/1073741824LL);
+    }
+    else if( target >= 1048576LL)
+    {
+        len = snprintf(c,sizeof(c),"%.2lfMB",(double)(target)/1048576LL);
+    }
+    else if( target >= 1024LL)
+    {
+        len = snprintf(c,sizeof(c),"%.2lfKB",(double)(target)/1024LL);
+    }
+    else 
+    {
+        len = snprintf(c,sizeof(c),"%.2lfB",(double)(target));
+    }
+
+    if (len > formatvals[fno]) formatvals[fno] = len;
+
+}
+
+static void handlemem_signed(long long target, char * c, int fno)
+{
+
+    int len;
+    if(target >= 1073741824LL)
+    {
+        len = snprintf(c,sizeof(c),"%.2lfGB",(double)(target)/1073741824LL);
+    }
+    else if( target >= 1048576LL)
+    {
+        len = snprintf(c,sizeof(c),"%.2lfMB",(double)(target)/1048576LL);
+    }
+    else if( target >= 1024LL)
+    {
+        len = snprintf(c,sizeof(c),"%.2lfKB",(double)(target)/1024LL);
+    }
+    else 
+    {
+        len = snprintf(c,sizeof(c),"%.2lfB",(double)(target));
+    }
+
+    if (len > formatvals[fno]) formatvals[fno] = len;
+
+}
+
+static void handleformat(PROCESSINFO * t)
+{
+    FORMATCHECK_NUM(t->pid,formatvals[0]);
+    FORMATCHECK_STRING(t->name,formatvals[1]);
+    FORMATCHECK_NUM(t->ppid,formatvals[3]);
+    FORMATCHECK_STRING(t->ttyname,formatvals[4]);
     
-    FORMATCHECK_UNSIGNED_NUM(t.utime,formatvals[5]);
-    FORMATCHECK_UNSIGNED_NUM(t.stime,formatvals[6]);
+    FORMATCHECK_UNSIGNED_NUM(t->utime,formatvals[5]);
+    FORMATCHECK_UNSIGNED_NUM(t->stime,formatvals[6]);
     
-    FORMATCHECK_NUM(t.prio,formatvals[7]);
-    FORMATCHECK_NUM(t.nice,formatvals[8]);
-    FORMATCHECK_NUM(t.threadno,formatvals[9]);
+    FORMATCHECK_NUM(t->prio,formatvals[7]);
+    FORMATCHECK_NUM(t->nice,formatvals[8]);
+    FORMATCHECK_NUM(t->threadno,formatvals[9]);
     
-    FORMATCHECK_UNSIGNED_NUM((t.virt)/1024UL,formatvals[10]); //kilobajti
+    //FORMATCHECK_UNSIGNED_NUM((t->virt)/1024UL,formatvals[10]); //kilobajti
+    handlemem_unsigned(t->virt,t->virt_display,10);
     
-    FORMATCHECK_NUM(t.res * (pgsz/1024L),formatvals[11]); // iz stranica u kilobajte
-    FORMATCHECK_STRING(t.user,formatvals[12]);
+    //FORMATCHECK_NUM(t->res * (pgsz/1024L),formatvals[11]); // iz stranica u kilobajte
+    handlemem_signed(t->res * pgsz, t->res_display,11);
+
+    
+    
+    
+    FORMATCHECK_STRING(t->user,formatvals[12]);
     
     /* ne treba proveravati za state(jedan karaker uvek)
-     * kao i za cpu% i mem%(ograniceni procentno na max 4 znaka 0,XY)
-     * takodje start jer je njegova sama duzina(5) jednaka ili veca od svih mogucih varijanti(XY:ZQ, MONXY,XYWZ)
+     * kao i za cpu% i mem%(ograniceni procentno na max 6 znakova XYZ,WQ)
+     * takodje start jer je njegova sama duzina(5) jednaka ili veca od svih mogucih varijanti(XY:ZQ, MONXY,XYZW)
     */
 
-    FORMATCHECK_NUM(t.sid,formatvals[16]);
-    FORMATCHECK_NUM(t.pgrp,formatvals[17]);
-    
+    FORMATCHECK_NUM(t->sid,formatvals[16]);
+    FORMATCHECK_NUM(t->pgrp,formatvals[17]);
 
+    //FORMATCHECK_NUM(t->shr,formatvals[23]);
+    handlemem_signed(t->shr, t->shr_display,23);
+    
 
 }
 
@@ -240,6 +298,27 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             );
 
             fclose(infofile);
+
+            char statmpath[150];
+            snprintf(statmpath,sizeof(statmpath),"/proc/%s/statm",entry->d_name);
+            FILE * statmfile = fopen(statmpath,"r");
+
+            
+            if(statmfile == NULL)
+            {
+                if(errno == ENOENT || errno == EACCES)
+                    continue;
+                perror("statm: fopen:");
+                exit(EXIT_FAILURE);
+            }
+            
+            long long shrpages;
+
+            fscanf(statmfile,"%*s %*s %lld %*s %*s %*s %*s",&shrpages);
+
+            t.shr = shrpages * pgsz; //bajtovi
+
+            fclose(statmfile);
 
             snprintf(fullpath,sizeof(fullpath),"/proc/%s/cmdline", entry->d_name);
             FILE * fullcommand = fopen(fullpath,"r");
@@ -433,6 +512,8 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             
 
             truncate_str(t.name,200);
+            
+            handleformat(&t);
             addElement(head,t,tio,tcpu);
             if(!tio.io_blocked)
             {
@@ -440,7 +521,8 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 FORMATCHECK_IO(tio.read_bytes_cur,formatvals[19],0);
                 FORMATCHECK_IO(tio.write_bytes_cur,formatvals[20],0);
             }
-            handleformat(t);
+            
+            
 
         }
     }

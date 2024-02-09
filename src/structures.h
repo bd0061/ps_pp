@@ -1,9 +1,12 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 #include<time.h>
-// /proc/pid/stat truncates name to 15 char
 
-#define CURRENT_UNIX_TIME (time(NULL))
+struct final_print_struct
+{
+	char mesg[2048];
+	int pid;
+};
 
 typedef struct PROCESSINFO 
 {
@@ -21,18 +24,27 @@ typedef struct PROCESSINFO
 	long prio;
 	long nice;
 	long threadno;
+	
 	unsigned long virt;
+	char virt_display[64];
+	
 	long res; //pages
+	char res_display[64];
+
+
+
 	char user[128];
 	char ttyname[128];
 	unsigned long long starttime; //ticks after boot time
 	struct tm start_struct;
 	long starttime_secs;
 
-
+	long long shr;
+	char shr_display[64];
 
 	unsigned long utime_prev;
 	unsigned long stime_prev;
+
 
 
 
@@ -68,6 +80,8 @@ typedef struct PROCESS_LL
 	struct PROCESS_LL * next;
 
 } PROCESS_LL;
+
+
 
 
 #endif

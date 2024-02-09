@@ -20,9 +20,13 @@ extern char CLASSIC_KEY;
 extern char MEMSORT_KEY;
 extern char CPUSORT_KEY;
 extern char NORMALSORT_KEY;
+extern char PRIOSORT_KEY;
 extern char CUSTOM_KEY;
 extern char BACK_KEY;
 extern char HELP_KEY;
 extern char END_KEY;
+extern char NICEPLUS_KEY;
+extern char NICEMINUS_KEY;
+
 
 #endif

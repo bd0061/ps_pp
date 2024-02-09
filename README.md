@@ -7,7 +7,7 @@ Ovaj program razvijen je za projekat iz predmeta Arhitektura Računara i Operati
 * Ispisivanje svih mogućih informacija koje Linux kernel snabdeva o individualnim procesima
 * Fleksibilno formatiranje informacija
 * Interakcija sa procesima u realnom vremenu
-* Sortiranje liste procesa
+* Sortiranje liste procesa po različitim parametrima
 * Filtriranje procesa po PID, vlasniku, i imenu
 * Modifikacija izgleda programa i keybinding-a kroz konfiguracioni fajl
 * Jednostavan korisnički interfejs na komandnoj liniji

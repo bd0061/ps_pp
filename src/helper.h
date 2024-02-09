@@ -25,14 +25,11 @@ void removeElement(PROCESS_LL** head, int pidToRemove);
 void printList(PROCESS_LL* head);
 void freeList(PROCESS_LL* head);
 
-int compareByRes(const void *a, const void *b);
+
 void sortmem(PROCESS_LL **head);
-
 void sortCPU(PROCESS_LL **head);
-int compareCPU(const void *a, const void *b);
-
 void sortPID(PROCESS_LL **head);
-int comparePID(const void *a, const void *b);
+void sortPrio(PROCESS_LL **head);
 
 
 
