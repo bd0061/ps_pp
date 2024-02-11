@@ -17,11 +17,21 @@
 #include "configreader.h"
 #include "dynamic_array_manager.h"
 
-#define tabbord (i == buflength - 1 ? "|" : "")
-#define tabstart (i == 0 ? "|" : "")
-#define INFOMSG_POSITION 15
-#define LAG 10 //ms
+#ifdef FORMAT_TABLE
+	#define tabbord (i == buflength - 1 ? "|" : "")
+	#define tabstart (i == 0 ? "|" : "")
+#else 
+	#define tabbord (i == buflength - 1 ? " " : "")
+	#define tabstart (i == 0 ? " " : "")
+#endif
 
+#define INFOMSG_POSITION 15
+#define FILTERMSG_POSITION 16
+
+#define LAG 10 //ms
+#define REFRESH_RATE 1000 //ms
+
+char NAME_FILTER[256];
 
 char INFOMSG[65];
 PROCESS_LL * head;
@@ -29,12 +39,9 @@ PROCESS_LL * start;
 
 int LIST_START;
 
-int HELP_MODE;
 int countDown;
-
-
 int SUCCESS;
-
+int FILTERING;
 
 int selectedLine;
 int x,y,cursx,cursy;
@@ -48,6 +55,8 @@ double cpu_percent;
 int formatvals[24];
 long clock_ticks_ps;
 long pgsz;
+
+
 long long memtotal, memfree, memavailable,swaptotal,swapfree;
 long btime;
 unsigned long uptime;
@@ -59,7 +68,6 @@ void printhelpmenu()
 {
 	clear();
 	int helpline = 0;
-	HELP_MODE = 1;
 	getmaxyx(stdscr,y,x);
 	attron(COLOR_PAIR(1));
 	attron(A_REVERSE);
@@ -67,15 +75,20 @@ void printhelpmenu()
 	attroff(A_REVERSE);
 
 
-
+	attron(A_BOLD);
 	mvprintw(helpline++,0,"USAGE");
+	attroff(A_BOLD);
 	mvprintw(helpline++,4,"ps_pp [options]");
 	
 	helpline++;
+	attron(A_BOLD);
 	mvprintw(helpline++,0,"DESCRIPTION");
+	attroff(A_BOLD);
 	mvprintw(helpline++,4,"ps_pp is a command-line utility to display process information.");
 	helpline++;
+	attron(A_BOLD);
 	mvprintw(helpline++,0,"OPTIONS");
+	attroff(A_BOLD);
 	mvprintw(helpline++,4,"-p, --pid <username>");
 	mvprintw(helpline++,8,"Display processes matching given PID(s).");
 	mvprintw(helpline++,4,"-u, --user <username>");
@@ -85,9 +98,11 @@ void printhelpmenu()
 	mvprintw(helpline++,4,"-n, --name <regex>");
 	mvprintw(helpline++,8,"Display information about processes whose command name match the pattern(s).");
 	helpline++;
+	attron(A_BOLD);
 	mvprintw(helpline++,0,"CURRENT KEY BINDINGS");
+	attroff(A_BOLD);
 
-
+	mvprintw(helpline++,4,"[F4] - Name filter mode");
 	mvprintw(helpline++,4,"[%c] - Quit program",QUIT_KEY);
 	mvprintw(helpline++,4,"[%c] - Send SIGTERM signal",KILL_KEY);
 	mvprintw(helpline++,4,"[%c] - Switch to IO mode",IO_KEY);
@@ -220,14 +235,14 @@ void handle_io(char * dest, size_t destsize, long long target, int blocked, int 
 {
 	double vd;
 	char * s = ""; 
-	if(target > 1000000LL)
+	if(target > 1048576LL)
 	{
-		vd = (double)target / 1000000LL;
+		vd = (double)target / 1048576LL;
 		s = "M";
 	}
-	else if (target > 1000LL)
+	else if (target > 1024LL)
 	{
-		vd = (double)target / 1000LL;
+		vd = (double)target / 1024LL;
 		s = "K";
 	}
 	else 
@@ -242,7 +257,7 @@ void handle_io(char * dest, size_t destsize, long long target, int blocked, int 
 	}
 	else 
 	{
-		snprintf(dest, destsize, "%.1lf %sB%s", vd,s, pers ? "/s" : "");
+		snprintf(dest, destsize, "%.1lf%sB%s", vd,s, pers ? "/s" : "");
 	}
 
 }
@@ -554,6 +569,24 @@ void print_stats()
 		for(int i = 0; i < 2048 && i < x; i++)
 			mvprintw(INFOMSG_POSITION,i," ");
 	}
+	if(FILTERING)
+	{
+		char buf[300];
+		attron(COLOR_PAIR(5));
+		attron(A_BOLD);
+		int len = snprintf(buf,sizeof(buf),"Name:%s\n",NAME_FILTER);
+		mvprintw(FILTERMSG_POSITION,0,"%s",buf);
+		attron(A_BLINK);
+		mvprintw(FILTERMSG_POSITION,len-1,"|");
+		attroff(A_BLINK);
+		attroff(A_BOLD);
+		attron(COLOR_PAIR(1));
+	}
+	else 
+	{
+		for(int i = 0; i < 2048 && i < x; i++)
+			mvprintw(FILTERMSG_POSITION,i," ");
+	}
 
 }
 
@@ -583,7 +616,6 @@ void print_art()
 	
 
 	mvprintw(5,0,"\n");
-
 }
 
 /*odstampaj prvi red u outputu vodeci racuna o formatiranju i tome gde staviti znak | */
@@ -609,7 +641,12 @@ void print_header(char ** buffer, int buflength, char ** formats, int format_no,
 
 	GLOBAL_CURSE_OFFSET++;
 	attron(COLOR_PAIR(4));
-	mvprintw(GLOBAL_CURSE_OFFSET++,0,"%s\n",final);
+	mvprintw(GLOBAL_CURSE_OFFSET,0,"%s\n",final);
+	for(int k = strlen(final); k < x && k < 2048; k++)
+	{
+		mvprintw(GLOBAL_CURSE_OFFSET,k," ");
+	}
+	++GLOBAL_CURSE_OFFSET;
 	attron(COLOR_PAIR(1));
 	
 	*printno_export = printno;
@@ -722,7 +759,6 @@ void print_upper_menu_and_mod_offset(char ** fbuf, int fno, char ** dformats, in
 {
 
 	GLOBAL_CURSE_OFFSET = 6;
-
 	print_stats(); //menjaju offset
 	
 	if(fno != 0)
@@ -741,15 +777,22 @@ void print_upper_menu_and_mod_offset(char ** fbuf, int fno, char ** dformats, in
 void refreshList()
 {
 	char optimization[2048];
+	if(FILTERING)
+		attron(A_DIM);
 	for(int i = start_pspp, pos = 0; i< y - LIST_START + start_pspp && i < fps_size; i++,pos++)
 	{
-		snprintf(optimization,x,"%s",fps[i].mesg);
+		snprintf(optimization,x+1,"%s",fps[i].mesg);
+		for(int j = strlen(fps[i].mesg); j < x && j < 2048; j++)
+		{
+			snprintf(optimization + j,x," ");
+		} 
 		if(i == selectedLine)
 			attron(COLOR_PAIR(3));
 			mvprintw(pos + LIST_START,0,"%s\n",optimization/*fps[i].mesg*/);
 		if(i == selectedLine)
 			attron(COLOR_PAIR(1));
 	}
+	attroff(A_DIM);
 }
 
 
@@ -863,6 +906,8 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 
 int main(int argc, char ** argv)
 {
+	NAME_FILTER[0] = '\0';
+	FILTERING = 0;
 	int jFormat;
 	int ioFormat;
 	int clscFormat;
@@ -908,7 +953,7 @@ int main(int argc, char ** argv)
 	
 	int use_custom = 0;
 	
-	int current = 1000;
+	int current = REFRESH_RATE;
 	memSort = 0;
 	normalSort = 1;
 	cpuSort = 0;
@@ -922,7 +967,7 @@ int main(int argc, char ** argv)
 	
 	GLOBAL_CURSE_OFFSET = 6;
 	LIST_START = 0;
-	HELP_MODE = 0;
+	int HELP_MODE = 0;
 	
 	cpu_percent = readSystemCPUTime();
 	curse_init();
@@ -979,7 +1024,7 @@ int main(int argc, char ** argv)
 		long long afterCritical = getTimeInMilliseconds();
 
 
-		if(first_pspp || afterCritical - beforeCritical >= 1000)
+		if(first_pspp || afterCritical - beforeCritical >= REFRESH_RATE)
 	    {
 	    	first_pspp = 0;
 	    	beforeCritical = afterCritical;
@@ -1002,72 +1047,433 @@ int main(int argc, char ** argv)
 
 		if(fps_size == 1) selectedLine = 0;
 		
+		if(!HELP_MODE)
+		{
+			if(countDown > 0)
+			{
+				if(SUCCESS)
+					attron(COLOR_PAIR(5));
+				else 
+					attron(COLOR_PAIR(6));
+				attron(A_BOLD);
+				mvprintw(INFOMSG_POSITION,0,"%s\n",INFOMSG);
+				attroff(A_BOLD);
+				attron(COLOR_PAIR(1));
+			}
+			else 
+			{
+				for(int i = 0; i < 2048 && i < x; i++)
+					mvprintw(INFOMSG_POSITION,i," ");
+			}
+			if(FILTERING)
+			{
+				char buf[300];
+				attron(COLOR_PAIR(5));
+				attron(A_BOLD);
+				int len = snprintf(buf,sizeof(buf),"Name:%s\n",NAME_FILTER);
+				mvprintw(FILTERMSG_POSITION,0,"%s",buf);
+				attron(A_BLINK);
+				mvprintw(FILTERMSG_POSITION,len-1,"|");
+				attroff(A_BLINK);
+				attroff(A_BOLD);
+				attron(COLOR_PAIR(1));
+			}
+			else 
+			{
+				for(int i = 0; i < 2048 && i < x; i++)
+					mvprintw(FILTERMSG_POSITION,i," ");
+			}
+		}
 		
 		long long beforeInput = getTimeInMilliseconds();
 		if(!HELP_MODE)
 			refreshList();
-		int ch = getch();
 		
+
+
+
+		int ch = getch();
+		if(ch == KEY_F(4) && !HELP_MODE)
+		{
+			FILTERING = !FILTERING;
+		}
 		move(selectedLine - start_pspp,0);
 		
 		getyx(stdscr,cursy,cursx);
-		if(ch == QUIT_KEY)
+		if(!FILTERING)
 		{
-			endwin();
-			freeList(head);
-			free(fps);
-			exit(EXIT_SUCCESS);
-		}
-		else if (ch == HELP_KEY)
-		{
-			if(!HELP_MODE)
+			if(ch == QUIT_KEY)
 			{
-				printhelpmenu();
+				endwin();
+				freeList(head);
+				free(fps);
+				exit(EXIT_SUCCESS);
 			}
-			else 
+			else if(ch == KEY_RESIZE)
 			{
-				HELP_MODE = 0;
-				clear();
-				print_art();
+
+				if(HELP_MODE)
+				{
+					printhelpmenu();
+				}
+				else 
+				{
+					int _y,_x;
+					getmaxyx(stdscr,_y,_x);
+					if(fps_size > 0 && _y < y && y - LIST_START - 1 != 0 && selectedLine - start_pspp == y - LIST_START - 1)
+					{
+						start_pspp++;
+					}
+					x=_x;
+					y=_y;
+					print_art();
+					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				}	
+
+			}
+			else if (ch == HELP_KEY)
+			{
+				if(!HELP_MODE)
+				{
+					HELP_MODE = 1;
+					printhelpmenu();
+				}
+				else 
+				{
+					HELP_MODE = 0;
+					clear();
+					print_art();
+					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				}
+				
+			}
+	        else if (ch == KEY_MOUSE && fps_size > 0 && !HELP_MODE) 
+	        {
+	            MEVENT event;
+	            if (getmouse(&event) == OK) {
+	                if (event.bstate & BUTTON1_PRESSED && event.y >= LIST_START /*&& event.x <= printno_export*/) {
+	                	selectedLine = start_pspp + event.y - LIST_START;
+	                }
+	            }
+	            displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+	        }
+			else if(ch == KEY_DOWN && fps_size > 0 && !HELP_MODE)
+			{
+				if(selectedLine < fps_size - 1)
+				{
+					selectedLine++;
+					if(selectedLine == y + start_pspp - GLOBAL_CURSE_OFFSET)
+						start_pspp++;
+					refreshList();
+				}
+			}
+			else if(ch == KEY_UP && !HELP_MODE)
+			{
+				if(selectedLine > 0 && fps_size > 0)
+				{
+					if(cursy == 0 && start_pspp > 0)
+					{
+						start_pspp--;
+					}
+					selectedLine--;
+					refreshList();
+				}
+
+			}
+			else if(ch == KILL_KEY && fps_size > 0 && !HELP_MODE)
+			{
+				if(kill(fps[selectedLine].pid,SIGTERM) == 0)
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"\tKilled [%d]\t",fps[selectedLine].pid);
+					SUCCESS = 1;
+					countDown = 5;
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					clear();
+					if(selectedLine > 0 && fps_size > 0)
+					{
+						if(cursy == 0 && start_pspp > 0)
+						{
+							start_pspp--;
+						}
+						selectedLine--;
+					}
+					print_art();
+					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				}
+				else 
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"\tCouldn't kill [%d]: %s\t",fps[selectedLine].pid,strerror(errno));
+					SUCCESS = 0;
+					countDown = 5;
+				}
+			}
+			else if(ch == ID_KEY && fps_size > 0 && !jFormat && !HELP_MODE)
+			{
+				jFormat = 1;
+				ioFormat = 0;
+				clscFormat = 0;
+				customFormat = 0;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to id mode\t");
+				SUCCESS = 1;
+				countDown = 5;
+				char ** cl;
+				int *j;
+				if(f.no == 0) 
+				{
+					cl = default_formats;
+					j = &(default_format_no);
+				}
+				else 
+				{
+					cl = f.buffer;
+					j = &(f.no);
+
+				}
+				for(int i = 0; i < *j; i++)
+				{
+					cl[i] = NULL;
+				}
+				
+				cl[0] = "PID";cl[1] = "PPID";cl[2] = "PGRP";cl[3] = "SID";cl[4] = "NAME";
+				*j = 5;
+				
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == IO_KEY && fps_size > 0 && !ioFormat && !HELP_MODE)
+			{
+				ioFormat = 1;
+				jFormat = 0;
+				clscFormat = 0;
+				customFormat = 0;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to io mode\t");
+				SUCCESS = 1;
+				countDown = 5;
+				
+				char ** cl;
+				int *j;
+				if(f.no == 0) 
+				{
+					cl = default_formats;
+					j = &(default_format_no);
+				}
+				else 
+				{
+					cl = f.buffer;
+					j = &(f.no);
+
+				}
+				for(int i = 0; i < *j; i++)
+				{
+					cl[i] = NULL;
+				}
+				cl[0] = "PID";
+				cl[1] = "IO_READ/s";
+				cl[2] = "IO_WRITE/s";
+				cl[3] = "IO_READ";
+				cl[4] = "IO_WRITE";
+				cl[5] = "C_WRITE";
+				cl[6] = "NAME";
+				*j = 7;
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == CLASSIC_KEY && fps_size > 0 && !clscFormat && !HELP_MODE)
+			{
+				classic:
+				ioFormat = 0;
+				jFormat = 0;
+				clscFormat = 1;
+				customFormat = 0;
+				
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to classic mode\t");
+				SUCCESS = 1;
+				countDown = 5;
+
+				char ** cl;
+				int *j;
+				if(f.no == 0) 
+				{
+					cl = default_formats;
+					j = &(default_format_no);
+				}
+				else 
+				{
+					cl = f.buffer;
+					j = &(f.no);
+
+				}
+				for(int i = 0; i < *j; i++)
+				{
+					cl[i] = NULL;
+				}
+				cl[0] = "PID";
+				cl[1] = "STATE";
+				cl[2] = "PPID";
+				cl[3] = "TTY";
+				cl[4] = "PRIO";
+				cl[5] = "NICE";
+				cl[6] = "SHR";
+				cl[7] = "VIRT";
+				cl[8] = "RES";
+				cl[9] = "OWNER";
+				cl[10] = "MEM%";
+				cl[11] = "CPU%";
+				cl[12] = "START";
+				cl[13] = "NAME";
+				*j = 14;
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == MEMSORT_KEY && fps_size > 0 && !memSort && !HELP_MODE)
+			{
+				memSort = 1;
+				normalSort = 0;
+				cpuSort = 0;
+				prioSort = 0;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by mem\t");
+				SUCCESS = 1;
+				countDown = 5;
+				sortmem(&head);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == CPUSORT_KEY && fps_size > 0 && !cpuSort && !HELP_MODE)
+			{
+				cpuSort = 1;
+				normalSort = 0;
+				memSort = 0;
+				prioSort = 0;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by CPU%\t");
+				SUCCESS = 1;
+				countDown = 5;
+				sortCPU(&head);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
-			
-		}
-        else if (ch == KEY_MOUSE && fps_size > 0 && !HELP_MODE) 
-        {
-            MEVENT event;
-            if (getmouse(&event) == OK) {
-                if (event.bstate & BUTTON1_PRESSED && event.y >= LIST_START && event.x <= printno_export) {
-                	selectedLine = start_pspp + event.y - LIST_START;
-                }
-            }
-            displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-        }
-		else if(ch == KEY_DOWN && fps_size > 0 && !HELP_MODE)
-		{
-			if(selectedLine < fps_size - 1)
+			else if(ch == NORMALSORT_KEY && fps_size > 0 && !normalSort && !HELP_MODE)
 			{
-				selectedLine++;
-				if(selectedLine == y + start_pspp - GLOBAL_CURSE_OFFSET)
-					start_pspp++;
-				refreshList();
-			}
-		}
-		else if(ch == KEY_UP && !HELP_MODE)
-		{
-			if(selectedLine > 0 && fps_size > 0)
-			{
-				if(cursy == 0 && start_pspp > 0)
-				{
-					start_pspp--;
-				}
-				selectedLine--;
-				refreshList();
-			}
+				cpuSort = 0;
+				normalSort = 1;
+				memSort = 0;
+				prioSort = 0;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by default(PID)\t");
+				SUCCESS = 1;
+				countDown = 5;
+				sortPID(&head);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
+			}
+			else if(ch == PRIOSORT_KEY && fps_size > 0 && !prioSort && !HELP_MODE)
+			{
+				cpuSort = 0;
+				normalSort = 0;
+				memSort = 0;
+				prioSort = 1;
+				
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by priority\t");
+				SUCCESS = 1;
+				countDown = 5;
+				
+				sortPrio(&head);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == CUSTOM_KEY && fps_size > 0 && !customFormat && !HELP_MODE)
+			{
+				if(!use_custom)
+				{
+					if(!clscFormat)
+					{
+						ch = CLASSIC_KEY;
+						goto classic;
+					}
+
+				}
+				else 
+				{
+					customFormat = 1;
+					clscFormat = 0;
+					ioFormat = 0;
+					jFormat = 0;
+					snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched back to custom format mode\t");
+					SUCCESS = 1;
+					countDown = 5;
+					
+					for(int i = 0; i < saved_custom_length; i++)
+					{
+						f.buffer[i] = saved_custom[i];
+					}
+					f.no = saved_custom_length;
+					
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				}
+			}
+			else if(ch == BACK_KEY && fps_size > 0 && selectedLine > 0 && !HELP_MODE)
+			{
+				start_pspp = 0;
+				selectedLine = 0;
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				
+
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tReturned to top      ");
+				SUCCESS = 1;
+				countDown = 5;
+			}
+			else if(ch == END_KEY && fps_size > 0 && selectedLine < fps_size - 1 && !HELP_MODE)
+			{
+				selectedLine = fps_size - 1;
+				if(fps_size > y - LIST_START)
+					start_pspp = fps_size -(y - LIST_START);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				
+
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tJumped to end      ");
+				SUCCESS = 1;
+				countDown = 5;
+			}
+			else if((ch == NICEPLUS_KEY || ch == NICEMINUS_KEY) && !HELP_MODE && fps_size > 0)
+			{
+				errno = 0;
+				int prio = getpriority(PRIO_PROCESS,fps[selectedLine].pid);
+				if(prio == -1 && errno != 0)
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"\tError reading current nice value for [%d]: %s",fps[selectedLine].pid,strerror(errno));
+					SUCCESS = 0;
+					countDown = 5;
+				}
+				else 
+				{
+					if(setpriority(PRIO_PROCESS,fps[selectedLine].pid,ch == NICEPLUS_KEY ? prio + 1 : prio -1) == 0)
+					{
+						snprintf(INFOMSG,sizeof(INFOMSG),"\t%s nice for [%d]",ch == NICEPLUS_KEY ? "Incremented" : "Decremented",fps[selectedLine].pid);
+						SUCCESS = 1;
+						countDown = 5;
+						updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+						displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+					}
+					else 
+					{
+						snprintf(INFOMSG,sizeof(INFOMSG),"\tCouldn't %s nice for [%d]: %s",ch == NICEPLUS_KEY ? "increment" : "decrement",fps[selectedLine].pid, strerror(errno));
+						SUCCESS = 0;
+						countDown = 5;
+					}
+				}
+
+			}
 		}
 		else if(ch == KEY_RESIZE)
 		{
+
 			if(HELP_MODE)
 			{
 				printhelpmenu();
@@ -1087,295 +1493,28 @@ int main(int argc, char ** argv)
 			}	
 
 		}
-		else if(ch == KILL_KEY && fps_size > 0 && !HELP_MODE)
+		else
 		{
-			if(kill(fps[selectedLine].pid,SIGTERM) == 0)
+			if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '?' || ch == '!' || ch == '-' || ch == '/')
 			{
-				snprintf(INFOMSG,sizeof(INFOMSG),"\tKilled [%d]\t",fps[selectedLine].pid);
-				SUCCESS = 1;
-				countDown = 5;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				snprintf(NAME_FILTER + strlen(NAME_FILTER),sizeof(NAME_FILTER) - strlen(NAME_FILTER),"%c",ch);
 				clear();
-				if(selectedLine > 0 && fps_size > 0)
-				{
-					if(cursy == 0 && start_pspp > 0)
-					{
-						start_pspp--;
-					}
-					selectedLine--;
-				}
 				print_art();
-				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-			}
-			else 
-			{
-				snprintf(INFOMSG,sizeof(INFOMSG),"\tCouldn't kill [%d]: %s\t",fps[selectedLine].pid,strerror(errno));
-				SUCCESS = 0;
-				countDown = 5;
-			}
-		}
-		else if(ch == ID_KEY && fps_size > 0 && !jFormat && !HELP_MODE)
-		{
-			jFormat = 1;
-			ioFormat = 0;
-			clscFormat = 0;
-			customFormat = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to id mode\t");
-			SUCCESS = 1;
-			countDown = 5;
-			char ** cl;
-			int *j;
-			if(f.no == 0) 
-			{
-				cl = default_formats;
-				j = &(default_format_no);
-			}
-			else 
-			{
-				cl = f.buffer;
-				j = &(f.no);
-
-			}
-			for(int i = 0; i < *j; i++)
-			{
-				cl[i] = NULL;
-			}
-			
-			cl[0] = "PID";cl[1] = "PPID";cl[2] = "PGRP";cl[3] = "SID";cl[4] = "NAME";
-			*j = 5;
-			
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-
-		}
-		else if(ch == IO_KEY && fps_size > 0 && !ioFormat && !HELP_MODE)
-		{
-			ioFormat = 1;
-			jFormat = 0;
-			clscFormat = 0;
-			customFormat = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to io mode\t");
-			SUCCESS = 1;
-			countDown = 5;
-			
-			char ** cl;
-			int *j;
-			if(f.no == 0) 
-			{
-				cl = default_formats;
-				j = &(default_format_no);
-			}
-			else 
-			{
-				cl = f.buffer;
-				j = &(f.no);
-
-			}
-			for(int i = 0; i < *j; i++)
-			{
-				cl[i] = NULL;
-			}
-			cl[0] = "PID";
-			cl[1] = "IO_READ/s";
-			cl[2] = "IO_WRITE/s";
-			cl[3] = "IO_READ";
-			cl[4] = "IO_WRITE";
-			cl[5] = "C_WRITE";
-			cl[6] = "NAME";
-			*j = 7;
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-
-		}
-		else if(ch == CLASSIC_KEY && fps_size > 0 && !clscFormat && !HELP_MODE)
-		{
-			classic:
-			ioFormat = 0;
-			jFormat = 0;
-			clscFormat = 1;
-			customFormat = 0;
-			
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched to classic mode\t");
-			SUCCESS = 1;
-			countDown = 5;
-
-			char ** cl;
-			int *j;
-			if(f.no == 0) 
-			{
-				cl = default_formats;
-				j = &(default_format_no);
-			}
-			else 
-			{
-				cl = f.buffer;
-				j = &(f.no);
-
-			}
-			for(int i = 0; i < *j; i++)
-			{
-				cl[i] = NULL;
-			}
-			cl[0] = "PID";
-			cl[1] = "STATE";
-			cl[2] = "PPID";
-			cl[3] = "TTY";
-			cl[4] = "PRIO";
-			cl[5] = "NICE";
-			cl[6] = "SHR";
-			cl[7] = "VIRT";
-			cl[8] = "RES";
-			cl[9] = "OWNER";
-			cl[10] = "MEM%";
-			cl[11] = "CPU%";
-			cl[12] = "START";
-			cl[13] = "NAME";
-			*j = 14;
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-
-		}
-		else if(ch == MEMSORT_KEY && fps_size > 0 && !memSort && !HELP_MODE)
-		{
-			memSort = 1;
-			normalSort = 0;
-			cpuSort = 0;
-			prioSort = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by mem\t");
-			SUCCESS = 1;
-			countDown = 5;
-			sortmem(&head);
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-
-		}
-		else if(ch == CPUSORT_KEY && fps_size > 0 && !cpuSort && !HELP_MODE)
-		{
-			cpuSort = 1;
-			normalSort = 0;
-			memSort = 0;
-			prioSort = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by CPU%\t");
-			SUCCESS = 1;
-			countDown = 5;
-			sortCPU(&head);
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-		}
-		else if(ch == NORMALSORT_KEY && fps_size > 0 && !normalSort && !HELP_MODE)
-		{
-			cpuSort = 0;
-			normalSort = 1;
-			memSort = 0;
-			prioSort = 0;
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by default(PID)\t");
-			SUCCESS = 1;
-			countDown = 5;
-			sortPID(&head);
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-
-		}
-		else if(ch == PRIOSORT_KEY && fps_size > 0 && !prioSort && !HELP_MODE)
-		{
-			cpuSort = 0;
-			normalSort = 0;
-			memSort = 0;
-			prioSort = 1;
-			
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by priority\t");
-			SUCCESS = 1;
-			countDown = 5;
-			
-			sortPrio(&head);
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-
-		}
-		else if(ch == CUSTOM_KEY && fps_size > 0 && !customFormat && !HELP_MODE)
-		{
-			if(!use_custom)
-			{
-				if(!clscFormat)
-				{
-					ch = CLASSIC_KEY;
-					goto classic;
-				}
-
-			}
-			else 
-			{
-				customFormat = 1;
-				clscFormat = 0;
-				ioFormat = 0;
-				jFormat = 0;
-				snprintf(INFOMSG,sizeof(INFOMSG),"\tSwitched back to custom format mode\t");
-				SUCCESS = 1;
-				countDown = 5;
-				
-				for(int i = 0; i < saved_custom_length; i++)
-				{
-					f.buffer[i] = saved_custom[i];
-				}
-				f.no = saved_custom_length;
-				
+				selectedLine = 0;
+				start_pspp = 0;
 				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
-		}
-		else if(ch == BACK_KEY && fps_size > 0 && selectedLine > 0 && !HELP_MODE)
-		{
-			start_pspp = 0;
-			selectedLine = 0;
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-			
-
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tReturned to top      ");
-			SUCCESS = 1;
-			countDown = 5;
-		}
-		else if(ch == END_KEY && fps_size > 0 && selectedLine < fps_size - 1 && !HELP_MODE)
-		{
-			selectedLine = fps_size - 1;
-			if(fps_size > y - LIST_START)
-				start_pspp = fps_size -(y - LIST_START);
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-			displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-			
-
-			snprintf(INFOMSG,sizeof(INFOMSG),"\tJumped to end      ");
-			SUCCESS = 1;
-			countDown = 5;
-		}
-		else if((ch == NICEPLUS_KEY || ch == NICEMINUS_KEY) && !HELP_MODE && fps_size > 0)
-		{
-			errno = 0;
-			int prio = getpriority(PRIO_PROCESS,fps[selectedLine].pid);
-			if(prio == -1 && errno != 0)
+			else if(ch == KEY_BACKSPACE && strlen(NAME_FILTER) > 0)
 			{
-				snprintf(INFOMSG,sizeof(INFOMSG),"\tError reading current nice value for [%d]: %s",fps[selectedLine].pid,strerror(errno));
-				SUCCESS = 0;
-				countDown = 5;
+				NAME_FILTER[strlen(NAME_FILTER) - 1] = '\0';
+				clear();
+				print_art();
+				selectedLine = 0;
+				start_pspp = 0;
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
-			else 
-			{
-				if(setpriority(PRIO_PROCESS,fps[selectedLine].pid,ch == NICEPLUS_KEY ? prio + 1 : prio -1) == 0)
-				{
-					snprintf(INFOMSG,sizeof(INFOMSG),"\t%s nice for [%d]",ch == NICEPLUS_KEY ? "Incremented" : "Decremented",fps[selectedLine].pid);
-					SUCCESS = 1;
-					countDown = 5;
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
-					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
-				}
-				else 
-				{
-					snprintf(INFOMSG,sizeof(INFOMSG),"\tCouldn't %s nice for [%d]: %s",ch == NICEPLUS_KEY ? "increment" : "decrement",fps[selectedLine].pid, strerror(errno));
-					SUCCESS = 0;
-					countDown = 5;
-				}
-			}
-
 		}
 		long long elapsed = getTimeInMilliseconds() - beforeInput;
 
@@ -1383,7 +1522,7 @@ int main(int argc, char ** argv)
 		current -= elapsed;
 
 		if(current <= 0)
-			current = 1000;
+			current = REFRESH_RATE;
 	
 
 		

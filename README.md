@@ -3,7 +3,7 @@ Jednostavan program nalik programu ps za ispisivanje osnovnih informacija o proc
 Ovaj program razvijen je za projekat iz predmeta Arhitektura Računara i Operativni Sistemi na Fakultetu Organizacionih nauka.
 ## Mogućnosti
 * Rad u realnom vremenu
-* Ispisivanje osnovnih generalnih informacija o sistemu, poput iskorišćenja procesora i memorije
+* Ispisivanje osnovnih generalnih informacija o sistemu, poput ukupnog iskorišćenja procesora i memorije
 * Ispisivanje svih mogućih informacija koje Linux kernel snabdeva o individualnim procesima
 * Fleksibilno formatiranje informacija
 * Interakcija sa procesima u realnom vremenu

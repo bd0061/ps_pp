@@ -27,7 +27,6 @@ char END_KEY;
 char NICEPLUS_KEY;
 char NICEMINUS_KEY;
 char PRIOSORT_KEY;
-
 #define PS_PP_COLORS 7
 #define PS_PP_KEYS 15
 

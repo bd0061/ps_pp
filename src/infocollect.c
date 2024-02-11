@@ -21,7 +21,7 @@ extern unsigned long long cputicks;
 extern unsigned long long allprocs;
 extern unsigned long long countprocs;
 extern long pgsz;
-
+extern char NAME_FILTER[256];
 
 static int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
 {
@@ -77,50 +77,50 @@ static int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
 }
 
 
-static void handlemem_unsigned(unsigned long target, char * c, int fno)
+static void handlemem_unsigned(unsigned long target, char * c, int fno, size_t b)
 {
 
     int len;
     if(target >= 1073741824LL)
     {
-        len = snprintf(c,sizeof(c),"%.2lfGB",(double)(target)/1073741824LL);
+        len = snprintf(c,b,"%.2lfGB",(double)(target)/1073741824LL);
     }
     else if( target >= 1048576LL)
     {
-        len = snprintf(c,sizeof(c),"%.2lfMB",(double)(target)/1048576LL);
+        len = snprintf(c,b,"%.2lfMB",(double)(target)/1048576LL);
     }
     else if( target >= 1024LL)
     {
-        len = snprintf(c,sizeof(c),"%.2lfKB",(double)(target)/1024LL);
+        len = snprintf(c,b,"%.2lfKB",(double)(target)/1024LL);
     }
     else 
     {
-        len = snprintf(c,sizeof(c),"%.2lfB",(double)(target));
+        len = snprintf(c,b,"%.2lfB",(double)(target));
     }
 
     if (len > formatvals[fno]) formatvals[fno] = len;
 
 }
 
-static void handlemem_signed(long long target, char * c, int fno)
+static void handlemem_signed(long long target, char * c, int fno, size_t b)
 {
 
     int len;
     if(target >= 1073741824LL)
     {
-        len = snprintf(c,sizeof(c),"%.2lfGB",(double)(target)/1073741824LL);
+        len = snprintf(c,b,"%.2lfGB",(double)(target)/1073741824LL);
     }
     else if( target >= 1048576LL)
     {
-        len = snprintf(c,sizeof(c),"%.2lfMB",(double)(target)/1048576LL);
+        len = snprintf(c,b,"%.2lfMB",(double)(target)/1048576LL);
     }
     else if( target >= 1024LL)
     {
-        len = snprintf(c,sizeof(c),"%.2lfKB",(double)(target)/1024LL);
+        len = snprintf(c,b,"%.2lfKB",(double)(target)/1024LL);
     }
     else 
     {
-        len = snprintf(c,sizeof(c),"%.2lfB",(double)(target));
+        len = snprintf(c,b,"%.2lfB",(double)(target));
     }
 
     if (len > formatvals[fno]) formatvals[fno] = len;
@@ -142,10 +142,10 @@ static void handleformat(PROCESSINFO * t)
     FORMATCHECK_NUM(t->threadno,formatvals[9]);
     
     //FORMATCHECK_UNSIGNED_NUM((t->virt)/1024UL,formatvals[10]); //kilobajti
-    handlemem_unsigned(t->virt,t->virt_display,10);
+    handlemem_unsigned(t->virt,t->virt_display,10, sizeof(t->virt_display));
     
     //FORMATCHECK_NUM(t->res * (pgsz/1024L),formatvals[11]); // iz stranica u kilobajte
-    handlemem_signed(t->res * pgsz, t->res_display,11);
+    handlemem_signed(t->res * pgsz, t->res_display,11,sizeof(t->res_display));
 
     
     
@@ -161,7 +161,7 @@ static void handleformat(PROCESSINFO * t)
     FORMATCHECK_NUM(t->pgrp,formatvals[17]);
 
     //FORMATCHECK_NUM(t->shr,formatvals[23]);
-    handlemem_signed(t->shr, t->shr_display,23);
+    handlemem_signed(t->shr, t->shr_display,23,sizeof(t->shr_display));
     
 
 }
@@ -244,9 +244,10 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                     continue;
                 }
             }
+
             
             PROCESSINFO t;
-            
+            t.name[0] = '\0';
             char fullpath[300];
             snprintf(fullpath,sizeof(fullpath),"/proc/%s/stat", entry->d_name);
             FILE * infofile = fopen(fullpath,"r");
@@ -322,6 +323,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
 
             snprintf(fullpath,sizeof(fullpath),"/proc/%s/cmdline", entry->d_name);
             FILE * fullcommand = fopen(fullpath,"r");
+            
             if(fullcommand == NULL)
             {
                 if(errno == ENOENT || errno == EACCES)
@@ -330,7 +332,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 exit(EXIT_FAILURE);
             }
            
-            if (fgets(buffer, sizeof(buffer), fullcommand) == NULL) //kernel thread
+            if (fgets(buffer, sizeof(buffer), fullcommand) == NULL) //  kernel thread/zombie
             {
                 fclose(fullcommand);
                 snprintf(fullpath,sizeof(fullpath),"/proc/%s/comm", entry->d_name);
@@ -340,13 +342,38 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                     fprintf(stderr, "commm fallback error");
                     exit(EXIT_FAILURE);
                 }
+                chomp(buffer);
+                strncpy(t.name,buffer,sizeof(buffer)-1);
+                t.name[sizeof(t.name) - 1] = '\0';
+            }
+            else 
+            {
+                //argumenti su iz nekog razloga odvojeni null terminatorom a sama linija nije null terminisana :D
+                memset(buffer, 0, sizeof(buffer));
+                rewind(fullcommand);
+                int len = fread(buffer, sizeof(char), sizeof(buffer), fullcommand);
+                if(len <= 0)
+                {
+                    fprintf(stderr, "cmdline read error\n");
+                    exit(EXIT_FAILURE);
+                }
+                for (int i = 0; i < len; i++) {
+                    if (buffer[i] == '\0') 
+                    {
+                        snprintf(t.name + strlen(t.name),sizeof(t.name) - strlen(t.name)," ");
+                    } 
+                    else 
+                    {
+                        snprintf(t.name + strlen(t.name),sizeof(t.name) - strlen(t.name),"%c", buffer[i]);
+                    }
+                }
             }
             fclose(fullcommand);
            
 
-            chomp(buffer);
+            /*chomp(buffer);
             strncpy(t.name,buffer,sizeof(buffer)-1);
-            t.name[sizeof(t.name) - 1] = '\0';
+            t.name[sizeof(t.name) - 1] = '\0';*/
             if(name_count != 0)
             {
                 int ok = 0;
@@ -360,6 +387,14 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 }
                 if(!ok)
                 {
+                    continue;
+                }
+            }
+            if(strlen(NAME_FILTER) > 0)
+            {
+                if(strcasestr(t.name,NAME_FILTER) == NULL)
+                {
+                    removeElement(head,t.pid);
                     continue;
                 }
             }

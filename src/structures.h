@@ -26,10 +26,10 @@ typedef struct PROCESSINFO
 	long threadno;
 	
 	unsigned long virt;
-	char virt_display[64];
+	char virt_display[128];
 	
 	long res; //pages
-	char res_display[64];
+	char res_display[128];
 
 
 
@@ -40,7 +40,7 @@ typedef struct PROCESSINFO
 	long starttime_secs;
 
 	long long shr;
-	char shr_display[64];
+	char shr_display[128];
 
 	unsigned long utime_prev;
 	unsigned long stime_prev;

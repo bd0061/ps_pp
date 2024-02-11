@@ -36,14 +36,14 @@ size_t iocheck(long long v,int type)
     int t = 0;
     double vd;
     
-    if(v >= 1000000LL)
+    if(v >= 1048576LL)
     {
-        vd = (double)v / 1000000LL;
+        vd = (double)v / 1048576LL;
         t = 2;
     }
-    else if (v >= 1000LL)
+    else if (v >= 1024LL)
     {
-        vd = (double)v / 1000LL;
+        vd = (double)v / 1024LL;
         t = 1;
     }
     else 
@@ -54,7 +54,7 @@ size_t iocheck(long long v,int type)
     char cinfo[256];
     snprintf(cinfo,sizeof(cinfo),"%sB%s",t == 2 ? "M" : (t == 1 ? "K" : ""),type == 0 ? "" : "/s");
 
-    return snprintf(NULL, 0, "%.1lf %s", vd, cinfo);
+    return snprintf(NULL, 0, "%.1lf%s", vd, cinfo);
 }
 
 size_t dno(long long a)
@@ -197,9 +197,9 @@ void removeElement(PROCESS_LL** head, int pidToRemove) {
 
         // Free the memory of the removed node
         free(current);
-    } else {
+    } /*else {
         fprintf(stderr, "linked list: element with pid %d not found\n", pidToRemove);
-    }
+    }*/
 }
 
 void printList(PROCESS_LL* head) {
@@ -267,7 +267,7 @@ static int comparePrio(const void *a, const void *b)
         return (nodeB->info.prio - nodeA->info.prio);
     }
     
-    return (nodeB->info.nice - nodeA->info.nice);
+    return (nodeA->info.nice - nodeB->info.nice);
 
 }
 
