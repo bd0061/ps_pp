@@ -6,6 +6,7 @@ struct final_print_struct
 {
 	char mesg[2048];
 	int pid;
+	char s;
 };
 
 typedef struct PROCESSINFO 

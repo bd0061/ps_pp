@@ -9,6 +9,17 @@ extern long btime;
 extern long clock_ticks_ps;
 extern int formatvals[24];
 
+/*jednostavan algoritam za konverziju vremena u sekundama u dane, sate, minute, i preostale sekunde. 
+(koristi se kod racunanje uptime-a) */
+void convertseconds(unsigned long long seconds, int *days, int *hours, int *minutes, int *remaining_seconds) {
+    *days = seconds / (24 * 3600);
+    *remaining_seconds = seconds % (24 * 3600);
+    *hours = *remaining_seconds / 3600;
+    *remaining_seconds = *remaining_seconds % 3600;
+
+    *minutes = *remaining_seconds / 60;
+    *remaining_seconds = *remaining_seconds % 60;
+}
 
 int alnum(char * s)
 {

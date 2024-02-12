@@ -16,7 +16,7 @@ size_t dno_u(unsigned long long a);
 
 size_t iocheck(long long v, int type);
 
-
+void convertseconds(unsigned long long seconds, int *days, int *hours, int *minutes, int *remaining_seconds);
 
 void chomp(char * s);
 int in(int * arr , int a, int l);

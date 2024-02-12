@@ -1,8 +1,8 @@
 #include <ncurses.h>
-#include <pthread.h>
 #include <sys/time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <math.h>
 #include <signal.h>
@@ -16,6 +16,7 @@
 #include "parseopts.h"
 #include "configreader.h"
 #include "dynamic_array_manager.h"
+#include "systeminfo.h"
 
 #ifdef FORMAT_TABLE
 	#define tabbord (i == buflength - 1 ? "|" : "")
@@ -31,40 +32,34 @@
 #define LAG 10 //ms
 #define REFRESH_RATE 1000 //ms
 
-char NAME_FILTER[256];
 
-char INFOMSG[65];
+static char INFOMSG[65];
+static int GLOBAL_CURSE_OFFSET;
+static int LIST_START;
+static int countDown;
+static int SUCCESS;
+static int FILTERING;
+static int selectedLine;
+static int x,y,cursx,cursy;
+static int start_pspp;
+static double cpu_percent;
+
+
 PROCESS_LL * head;
 PROCESS_LL * start;
-
-int LIST_START;
-
-int countDown;
-int SUCCESS;
-int FILTERING;
-
-int selectedLine;
-int x,y,cursx,cursy;
-int start_pspp;
-
-
-int GLOBAL_CURSE_OFFSET;
-double cpu_percent;
-
-
 int formatvals[24];
 long clock_ticks_ps;
 long pgsz;
-
-
 long long memtotal, memfree, memavailable,swaptotal,swapfree;
 long btime;
 unsigned long uptime;
 unsigned long long allprocs;
 unsigned long long countprocs;
+char NAME_FILTER[256];
+char MOUNT_POINT[256];
 
 
-void printhelpmenu()
+static void printhelpmenu()
 {
 	clear();
 	int helpline = 0;
@@ -105,6 +100,8 @@ void printhelpmenu()
 	mvprintw(helpline++,4,"[F4] - Name filter mode");
 	mvprintw(helpline++,4,"[%c] - Quit program",QUIT_KEY);
 	mvprintw(helpline++,4,"[%c] - Send SIGTERM signal",KILL_KEY);
+	mvprintw(helpline++,4,"[%c] - Send SIGKILL signal",KILLKILL_KEY);
+	mvprintw(helpline++,4,"[%c] - Suspend/unsuspend process",TOGGLESUSPEND_KEY);
 	mvprintw(helpline++,4,"[%c] - Switch to IO mode",IO_KEY);
 	mvprintw(helpline++,4,"[%c] - Switch to ID mode",ID_KEY);
 	mvprintw(helpline++,4,"[%c] - Switch to Classic mode",CLASSIC_KEY);
@@ -120,23 +117,10 @@ void printhelpmenu()
 	mvprintw(helpline++,4,"[%c] - Display this help menu",HELP_KEY);
 	
 	helpline++;
-
-
-
 }
 
 
-
-
-long long getTimeInMilliseconds()
-{
-    struct timeval currentTime;
-    gettimeofday(&currentTime, NULL);
-    return currentTime.tv_sec * 1000 + currentTime.tv_usec / 1000;
-}
-
-
-void curse_init()
+static void curse_init()
 {
 	readvals();
 
@@ -148,7 +132,7 @@ void curse_init()
 	keypad(stdscr,TRUE);
 	mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
 	mouseinterval(0);
-	timeout(1000);
+	timeout(REFRESH_RATE);
     if (has_colors() == FALSE) {
         endwin();
         printf("Your terminal does not support color\n");
@@ -176,62 +160,9 @@ void curse_init()
 
 
 
-double readSystemCPUTime() {
-	
-	static int CPU_FIRST = 1;
-
-	static struct cputotal
-	{
-		double seconds_prev;
-		double seconds_cur;
-	} CPU;
-   
-
-    FILE *stat_file = fopen("/proc/stat", "r");
-    if (stat_file == NULL) {
-		freeList(head);
-		free(fps);
-		endwin();
-        perror("error opening /proc/stat");
-        exit(EXIT_FAILURE);
-    }
-
-    char line[256];
-    if (fgets(line, sizeof(line), stat_file) == NULL) {
-		freeList(head);
-		free(fps);
-		endwin();
-        perror("error reading /proc/stat");
-        fclose(stat_file);
-        exit(EXIT_FAILURE);
-    }
-
-    fclose(stat_file);
-
-  
-    unsigned long user, nice, system, idle;
-    sscanf(line, "cpu %lu %lu %lu %lu", &user, &nice, &system, &idle);
 
 
-    double s = (double)user / clock_ticks_ps + (double)system / clock_ticks_ps;
-
-    if(CPU_FIRST)
-    {
-    	CPU_FIRST = 0;
-    	CPU.seconds_prev = s;
-    	CPU.seconds_cur = s;
-    }
-    else 
-    {
-    	CPU.seconds_prev = CPU.seconds_cur;
-    	CPU.seconds_cur = s;
-    }
-
-    return (CPU.seconds_cur - CPU.seconds_prev) * 100;
-    
-}
-
-void handle_io(char * dest, size_t destsize, long long target, int blocked, int pers)
+static void handle_io(char * dest, size_t destsize, long long target, int blocked, int pers)
 {
 	double vd;
 	char * s = ""; 
@@ -262,95 +193,10 @@ void handle_io(char * dest, size_t destsize, long long target, int blocked, int 
 
 }
 
-
-void getuptime()
-{
-    FILE * f=  fopen("/proc/uptime","r");
-     
-    char b[256];
-    if(fgets(b,sizeof(b),f) == NULL)
-    {
-		freeList(head);
-		free(fps);
-		endwin();
-    	fprintf(stderr,"error getting uptime\n");
-    	fclose(f);
-    	exit(EXIT_FAILURE);
-    }
-    sscanf(b,"%llu", &uptime);
-    fclose(f);
-}
-
-
-
-
-
-
-void getcurrenttime(struct tm * s)
-{
-	time_t t;
-	time(&t);
-	localtime_r(&t, s);
-}
-
-/* vreme podizanja sistema, u unix vremenu */
-
-void getbtime()
-{
-    FILE *sysstat = fopen("/proc/stat","r"); 
-    if(sysstat == NULL)
-    {
-		freeList(head);
-		free(fps);
-		endwin();
-    	perror("getbtime: fopen");
-    	exit(EXIT_FAILURE);
-    }
-    char buf[1024];
-    int line = 1;
-    while(fgets(buf,sizeof(buf),sysstat) != NULL)
-    {
-		if(line == 5)
-	    {
-			sscanf(buf,"btime %ld", &btime);
-			break;
-		}
-		line++;
-    }
-
-    fclose(sysstat);
-
-    if (line != 5 )
-    {
-		freeList(head);
-		free(fps);
-		endwin();
-    	fprintf(stderr, "error reading btime\n");
-    	exit(EXIT_FAILURE);
-    }
-	
-    
-
-
-}
-
-
-/*jednostavan algoritam za konverziju vremena u sekundama u dane, sate, minute, i preostale sekunde. 
-(koristi se kod racunanje uptime-a)	*/
-void convertseconds(unsigned long long seconds, int *days, int *hours, int *minutes, int *remaining_seconds) {
-    *days = seconds / (24 * 3600);
-    *remaining_seconds = seconds % (24 * 3600);
-    *hours = *remaining_seconds / 3600;
-    *remaining_seconds = *remaining_seconds % 3600;
-
-    *minutes = *remaining_seconds / 60;
-    *remaining_seconds = *remaining_seconds % 60;
-}
-
 /* odstampaj podatke o zauzetosti operativne memorije, iskoriscenost procesora,
 *  iskoriscenost swap prostora, uptime sistema, i totalan broj procesa */
 
-void prettyprint(char * s, int len)
+static void prettyprint(char * s, int len)
 {
 	for(int j = 0; j < 2048 && j < x; j++)
 	{
@@ -372,7 +218,7 @@ void prettyprint(char * s, int len)
 }
 
 
-void print_stats()
+static void print_stats()
 {
  	int days, hours, minutes, seconds;
 	convertseconds(uptime, &days, &hours, &minutes, &seconds);
@@ -574,7 +420,7 @@ void print_stats()
 		char buf[300];
 		attron(COLOR_PAIR(5));
 		attron(A_BOLD);
-		int len = snprintf(buf,sizeof(buf),"Name:%s\n",NAME_FILTER);
+		int len = snprintf(buf,sizeof(buf),"Name:%s%s\n",strlen(NAME_FILTER) > 0 ?  " " : "",NAME_FILTER);
 		mvprintw(FILTERMSG_POSITION,0,"%s",buf);
 		attron(A_BLINK);
 		mvprintw(FILTERMSG_POSITION,len-1,"|");
@@ -590,7 +436,7 @@ void print_stats()
 
 }
 
-void print_art()
+static void print_art()
 {
 	for(int i = 0; i < 6; i++)
 	{
@@ -619,7 +465,7 @@ void print_art()
 }
 
 /*odstampaj prvi red u outputu vodeci racuna o formatiranju i tome gde staviti znak | */
-void print_header(char ** buffer, int buflength, char ** formats, int format_no, int * printno_export)
+static void print_header(char ** buffer, int buflength, char ** formats, int format_no, int * printno_export)
 {
 	int printno = 0;
 	char final[2048];
@@ -654,7 +500,7 @@ void print_header(char ** buffer, int buflength, char ** formats, int format_no,
 }
 
 /* odstampaj podatke o procesu, vodeci racuna o formatiranju */
-void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
+static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 {
 		char *months[] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
 		char final[2048];
@@ -751,11 +597,11 @@ void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 			}
 		}
 		
-		add_final(final,start->info.pid);
+		add_final(final,start->info.pid,start->info.state);
 
 }
 
-void print_upper_menu_and_mod_offset(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
+static void print_upper_menu_and_mod_offset(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
 {
 
 	GLOBAL_CURSE_OFFSET = 6;
@@ -774,7 +620,7 @@ void print_upper_menu_and_mod_offset(char ** fbuf, int fno, char ** dformats, in
 }
 
 
-void refreshList()
+static void refreshList()
 {
 	char optimization[2048];
 	if(FILTERING)
@@ -796,7 +642,7 @@ void refreshList()
 }
 
 
-void displayScreen(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
+static void displayScreen(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
 {
 	print_upper_menu_and_mod_offset(fbuf,fno,dformats,dformatno,formats,format_no,printno_export);
 	refreshList();
@@ -804,7 +650,7 @@ void displayScreen(char ** fbuf, int fno, char ** dformats, int dformatno, char 
 
 
 
-void sortRefresh(int memSort, int cpuSort, int normalSort, int prioSort)
+static void sortRefresh(int memSort, int cpuSort, int normalSort, int prioSort)
 {
     if(memSort) sortmem(&head);
     else if(cpuSort) sortCPU(&head);
@@ -813,7 +659,7 @@ void sortRefresh(int memSort, int cpuSort, int normalSort, int prioSort)
 }
 
 
-void updateSysinfo()
+static void updateSysinfo()
 {
     countDown--;
 	getuptime();
@@ -822,31 +668,8 @@ void updateSysinfo()
 }
 
 
-
-void reformat(int fno, char ** fbuffer, char ** default_formats, int default_format_no)
-{
-	
-	clear_and_reset_array(&fps, &fps_size);
-	start = head;
-	while(start != head)
-	{
-		if(fno != 0)
-		{
-			collect_data(fbuffer,fno,start);
-		}
-		else 
-		{
-			collect_data(default_formats,default_format_no,start);
-
-		}
-		start = start->next;
-
-	}
-
-}
-
-
-void updateListInternal
+/*ponovo pokupi podatke u spregnutu listu, obrisi mrtve procese i procese koji nam vise ne trebaju za trenutnu selekciju. */
+static void updateListInternal
 (int * pid_args, int pno, char ** ubuffer, int uno, char ** nbuffer, int nno,int fno, char ** fbuffer, char ** default_formats, int default_format_no, char ** formats, int format_no,
 int memSort, int cpuSort, int prioSort, int normalSort)
 {
@@ -859,7 +682,7 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 	formatvals[15] = 5; //start
 
 	clear_and_reset_array(&fps, &fps_size);
-    findprocs(&head, pid_args, pno, ubuffer, uno,nbuffer,nno);
+    findprocs(&head, pid_args, pno, ubuffer, uno,nbuffer,nno,fbuffer,fno);
 	sortRefresh(memSort,cpuSort,normalSort,prioSort);
 
 	start = head;
@@ -867,7 +690,7 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 	{
 		//pokupiti mrtve procese
 		char _buf[1024];
-		snprintf(_buf,sizeof(_buf),"/proc/%d",start->info.pid);
+		snprintf(_buf,sizeof(_buf),"%s/%d",MOUNT_POINT,start->info.pid);
 		if(stat(_buf,NULL) != 0 && errno == ENOENT)
 		{
 			PROCESS_LL * temp = start->next;
@@ -894,7 +717,7 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 }
 
 
-void 
+static void 
 criticalSection
 (int * pid_args, int pno, char ** ubuffer, int uno, char ** nbuffer, int nno,int fno, char ** fbuffer, char ** default_formats, int default_format_no, char ** formats, int format_no,
 int memSort, int cpuSort, int prioSort, int normalSort)
@@ -906,6 +729,7 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 
 int main(int argc, char ** argv)
 {
+	get_mount_point();
 	NAME_FILTER[0] = '\0';
 	FILTERING = 0;
 	int jFormat;
@@ -1070,7 +894,7 @@ int main(int argc, char ** argv)
 				char buf[300];
 				attron(COLOR_PAIR(5));
 				attron(A_BOLD);
-				int len = snprintf(buf,sizeof(buf),"Name:%s\n",NAME_FILTER);
+				int len = snprintf(buf,sizeof(buf),"Name:%s%s\n",strlen(NAME_FILTER) > 0 ?  " " : "",NAME_FILTER);
 				mvprintw(FILTERMSG_POSITION,0,"%s",buf);
 				attron(A_BLINK);
 				mvprintw(FILTERMSG_POSITION,len-1,"|");
@@ -1470,6 +1294,26 @@ int main(int argc, char ** argv)
 				}
 
 			}
+			else if(ch == TOGGLESUSPEND_KEY && fps_size > 0 && !HELP_MODE)
+			{
+				int sig = fps[selectedLine].s == 'T' ? SIGCONT : SIGSTOP;
+				if(kill(fps[selectedLine].pid,sig) == 0)
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"%suspended [%d]",fps[selectedLine].s == 'T' ? "Uns" : "S");
+					SUCCESS = 1;
+					countDown = 5;
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				}
+				else 
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"Couldn't %suspend [%d]: %s",fps[selectedLine].s == 'T' ? "un" : "s",fps[selectedLine].pid,strerror(errno));
+					SUCCESS = 0;
+					countDown = 5;
+				}
+
+
+			}
 		}
 		else if(ch == KEY_RESIZE)
 		{
@@ -1495,7 +1339,8 @@ int main(int argc, char ** argv)
 		}
 		else
 		{
-			if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '?' || ch == '!' || ch == '-' || ch == '/')
+			//(ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch == '_' || ch == '?' || ch == '!' || ch == '-' || ch == '/' || ch == ' '
+			if(isprint(ch))
 			{
 				snprintf(NAME_FILTER + strlen(NAME_FILTER),sizeof(NAME_FILTER) - strlen(NAME_FILTER),"%c",ch);
 				clear();

@@ -27,8 +27,10 @@ char END_KEY;
 char NICEPLUS_KEY;
 char NICEMINUS_KEY;
 char PRIOSORT_KEY;
+char TOGGLESUSPEND_KEY;
+char KILLKILL_KEY;
 #define PS_PP_COLORS 7
-#define PS_PP_KEYS 15
+#define PS_PP_KEYS 17
 
 static int isempty(char * s)
 {
@@ -65,6 +67,8 @@ void readvals()
 	int NICEPLUS_KEY_CHECK = 0;
 	int NICEMINUS_KEY_CHECK = 0;
 	int PRIOSORT_KEY_CHECK = 0;
+	int TOGGLESUSPEND_KEY_CHECK = 0;
+	int KILLKILL_KEY_CHECK = 0;
 	int defenv = 1;
 
 	
@@ -112,8 +116,10 @@ void readvals()
 				"#CLASSIC_KEY=K\n"
 				"#MEMSORT_KEY=K\n"
 				"#CPUSORT_KEY=K\n"
-				"#NORMALSORT_KEY=K\n"	
-				"#CUSTOM_KEY=K\n"	
+				"#NORMALSORT_KEY=K\n"
+				"#PRIOSORT_KEY=K\n"	
+				"#CUSTOM_KEY=K\n"
+				"TOGGLESUSPEND_KEY=K\n"	
 				"#BACK_KEY=K\n"	
 				"#HELP_KEY=K\n"
 				"#END_KEY=K\n"
@@ -223,6 +229,14 @@ void readvals()
 		{
 			PRIOSORT_KEY_CHECK = 1;
 		}
+		else if(sscanf(line,"TOGGLESUSPEND_KEY=%c",&TOGGLESUSPEND_KEY))
+		{
+			TOGGLESUSPEND_KEY_CHECK = 1;
+		}
+		else if(sscanf(line,"KILLKILL_KEY=%c",&KILLKILL_KEY))
+		{
+			KILLKILL_KEY_CHECK = 1;
+		}
 		else if(!isempty(line))
 		{
 			fprintf(stderr,"%s:%d unknown configuration parameter: %s\n",fullpath, i, line);
@@ -309,10 +323,16 @@ void readvals()
 	 
 	 if(!PRIOSORT_KEY_CHECK)
 	 	PRIOSORT_KEY = 'l';
+	 
+	 if(!TOGGLESUSPEND_KEY_CHECK)
+	 	TOGGLESUSPEND_KEY = 'g';
+	 if(!KILLKILL_KEY_CHECK)
+	 	KILLKILL_KEY = 'K';
 
 	int * a[PS_PP_COLORS] = {COLOR_BG,COLOR_TEXT,COLOR_PRCNT_BAR,COLOR_SELECTPROC,COLOR_INFOTEXT,COLOR_INFO_SUC,COLOR_INFO_ERR};
 
-	char b[PS_PP_KEYS] = {QUIT_KEY,KILL_KEY,IO_KEY,ID_KEY,CLASSIC_KEY,MEMSORT_KEY,CPUSORT_KEY,NORMALSORT_KEY,PRIOSORT_KEY,CUSTOM_KEY,BACK_KEY,HELP_KEY,END_KEY,NICEPLUS_KEY,NICEMINUS_KEY};
+	char b[PS_PP_KEYS] = {QUIT_KEY,KILL_KEY,IO_KEY,ID_KEY,CLASSIC_KEY,MEMSORT_KEY,CPUSORT_KEY,NORMALSORT_KEY,PRIOSORT_KEY,CUSTOM_KEY,BACK_KEY,HELP_KEY,END_KEY,NICEPLUS_KEY,NICEMINUS_KEY,
+		TOGGLESUSPEND_KEY,KILLKILL_KEY};
 
 
 	for(int i = 0; i < PS_PP_COLORS; i++)

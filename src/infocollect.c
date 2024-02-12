@@ -21,14 +21,17 @@ extern unsigned long long cputicks;
 extern unsigned long long allprocs;
 extern unsigned long long countprocs;
 extern long pgsz;
+
+
 extern char NAME_FILTER[256];
+extern char MOUNT_POINT[256];
 
 static int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
 {
     char iopath[1024];
     int line = 1;
 
-    snprintf(iopath,sizeof(iopath),"/proc/%s/io", pidname);
+    snprintf(iopath,sizeof(iopath),"%s/%s/io",MOUNT_POINT, pidname);
     FILE * io = fopen(iopath,"r");
     if(io == NULL)
     {
@@ -167,51 +170,6 @@ static void handleformat(PROCESSINFO * t)
 }
 
 
-void getmeminfo(long long * memtotal, long long * memfree, long long * memavailable, long long * swaptotal, long long *swapfree)
-{
-    FILE * fp = fopen("/proc/meminfo","r");
-    if(fp == NULL)
-    {
-        perror("getmeminfo: fopen");
-        exit(EXIT_FAILURE);
-    }
-
-    char buffer[256];
-    int c = 1;
-    while ( fgets(buffer, sizeof(buffer), fp) != NULL )
-    {
-        if(c == 1)
-            sscanf(buffer, "MemTotal: %lld", memtotal);
-        else if (c == 2)
-            sscanf(buffer, "MemFree: %lld", memfree);
-        else if (c == 3)
-        {
-            sscanf(buffer, "MemAvailable: %lld", memavailable);
-        }
-        else if (c == 15)
-        {
-            sscanf(buffer, "SwapTotal: %lld", swaptotal);
-
-        }
-        else if (c == 16)
-        {
-           sscanf(buffer, "SwapFree: %lld", swapfree);
-            break;
-        }
-
-        c++;
-
-    }
-    fclose(fp);
-    if(c != 16)
-    {
-        fprintf(stderr,"unknown error reading meminfo");
-        exit(EXIT_FAILURE);
-    }
-    
-
-}
-
 /*skladisti informacije o procesima na osnovu datih opcija i filtera
  *
  *  !!! GLAVNI PROBLEM: KONKURENTAN PRISTUP PROCFS IZMEDJU NAS I KERNELA !!!
@@ -220,12 +178,11 @@ void getmeminfo(long long * memtotal, long long * memfree, long long * memavaila
  * npr kod citanja dodatnih informacija, ako jeste ne mozemo vise informacija da pokupimo jer je proces upravo prekinut, 
  * samo obustaviti trenutnu iteraciju i preci dalje 
  */
-void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_args, int user_count, char ** name_args, int name_count) {
+void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_args, int user_count, char ** name_args, int name_count, char ** fbuffer, int fno) {
     
     allprocs = 0;
     countprocs = 0;
-    const char *PROC = "/proc"; 
-    DIR *dir = opendir(PROC);
+    DIR *dir = opendir(MOUNT_POINT);
     if (dir == NULL) {
         perror("findprocs: fopen:");
         exit(EXIT_FAILURE);
@@ -249,7 +206,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             PROCESSINFO t;
             t.name[0] = '\0';
             char fullpath[300];
-            snprintf(fullpath,sizeof(fullpath),"/proc/%s/stat", entry->d_name);
+            snprintf(fullpath,sizeof(fullpath),"%s/%s/stat",MOUNT_POINT,entry->d_name);
             FILE * infofile = fopen(fullpath,"r");
             //ekstremno redak slucaj: proces je ubijen onog momenta kada pokusamo da citamo njegove fajlove
             //zato gledamo da errno bude samo iz sistemskih razloga(memorijske greske itd)
@@ -301,7 +258,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             fclose(infofile);
 
             char statmpath[150];
-            snprintf(statmpath,sizeof(statmpath),"/proc/%s/statm",entry->d_name);
+            snprintf(statmpath,sizeof(statmpath),"%s/%s/statm",MOUNT_POINT,entry->d_name);
             FILE * statmfile = fopen(statmpath,"r");
 
             
@@ -321,7 +278,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
 
             fclose(statmfile);
 
-            snprintf(fullpath,sizeof(fullpath),"/proc/%s/cmdline", entry->d_name);
+            snprintf(fullpath,sizeof(fullpath),"%s/%s/cmdline",MOUNT_POINT, entry->d_name);
             FILE * fullcommand = fopen(fullpath,"r");
             
             if(fullcommand == NULL)
@@ -335,7 +292,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             if (fgets(buffer, sizeof(buffer), fullcommand) == NULL) //  kernel thread/zombie
             {
                 fclose(fullcommand);
-                snprintf(fullpath,sizeof(fullpath),"/proc/%s/comm", entry->d_name);
+                snprintf(fullpath,sizeof(fullpath),"%s/%s/comm", MOUNT_POINT,entry->d_name);
                 fullcommand = fopen(fullpath, "r");
                 if(fullcommand == NULL || fgets(buffer, sizeof(buffer), fullcommand) == NULL)
                 {
@@ -345,6 +302,12 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 chomp(buffer);
                 strncpy(t.name,buffer,sizeof(buffer)-1);
                 t.name[sizeof(t.name) - 1] = '\0';
+                if(t.ppid == 2)
+                {
+                    char testk[256];
+                    snprintf(testk,sizeof(testk),"%s",t.name);
+                    snprintf(t.name,sizeof(t.name),"[%s] - kthr",testk);
+                }
             }
             else 
             {
@@ -400,7 +363,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             }
             //begin
                 char _statuspath[1024];
-                snprintf(_statuspath,sizeof(_statuspath),"/proc/%s/status", entry->d_name);
+                snprintf(_statuspath,sizeof(_statuspath),"%s/%s/status",MOUNT_POINT, entry->d_name);
                 FILE * statusfile = fopen(_statuspath,"r");
                 if(statusfile == NULL)
                 {
@@ -465,7 +428,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             char tname[256];
             struct stat file_stat;
 
-            snprintf(linkpath,sizeof(linkpath),"/proc/%s/fd/0", entry->d_name);
+            snprintf(linkpath,sizeof(linkpath),"%s/%s/fd/0",MOUNT_POINT, entry->d_name);
 
             if (stat(linkpath, &file_stat) == -1) 
             {
@@ -545,8 +508,14 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             tcpu.utime_cur = t.utime;
             tcpu.stime_cur = t.stime;
             
+            int trunval;
 
-            truncate_str(t.name,200);
+            if(fno == 0 || strcmp(fbuffer[fno -1],"NAME"))
+                trunval = 200;
+            else 
+                trunval = 50;
+
+            truncate_str(t.name,trunval);
             
             handleformat(&t);
             addElement(head,t,tio,tcpu);

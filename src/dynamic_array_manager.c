@@ -9,11 +9,12 @@ struct final_print_struct *fps;
 int fps_size;
 
 
-void add_final(char * mesg, int pid)
+void add_final(char * mesg, int pid, char s)
 {
     struct final_print_struct new_struct;
     snprintf(new_struct.mesg, sizeof(new_struct.mesg), "%s", mesg);
     new_struct.pid = pid;
+    new_struct.s = s;
     fps_size++;
   	
   	fps = realloc(fps, fps_size * sizeof(struct final_print_struct));
