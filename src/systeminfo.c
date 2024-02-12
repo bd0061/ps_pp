@@ -185,7 +185,7 @@ void getcurrenttime(struct tm * s)
 
 void getbtime()
 {
-	char filepath[260];
+	char filepath[261];
 	snprintf(filepath,sizeof(filepath),"%s/stat",MOUNT_POINT);
     FILE *sysstat = fopen(filepath,"r"); 
     if(sysstat == NULL)

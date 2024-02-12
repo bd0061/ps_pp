@@ -182,7 +182,6 @@ void addElement(PROCESS_LL** head, PROCESSINFO newInfo, PROCESSINFO_IO newIOInfo
     }
 }
 
-// Function to remove an element with a specific pid from the end of the linked list
 void removeElement(PROCESS_LL** head, int pidToRemove) {
     if (*head == NULL) {
         return;
@@ -191,60 +190,23 @@ void removeElement(PROCESS_LL** head, int pidToRemove) {
     PROCESS_LL* current = *head;
     PROCESS_LL* previous = NULL;
 
-    // Traverse the list to find the element with the specified pid
     while (current->next != NULL && current->info.pid != pidToRemove) {
         previous = current;
         current = current->next;
     }
 
-    // Check if the element with the specified pid was found
     if (current->info.pid == pidToRemove) {
         if (previous == NULL) {
-            // If the element to be removed is the first element
             *head = current->next;
         } else {
             previous->next = current->next;
         }
 
-        // Free the memory of the removed node
         free(current);
-    } /*else {
-        fprintf(stderr, "linked list: element with pid %d not found\n", pidToRemove);
-    }*/
+    } 
 }
 
-void printList(PROCESS_LL* head) {
-    PROCESS_LL* start = head;
-    for (;start != NULL; start = start->next) { //debuf ufnckija
-        /*if(start->info.pid == 7073)
-        {
-            if(start->ioinfo.io_blocked)
-            {
-                //printf("[%d] - BLOCKED, SKIPPING...\n",start->info.pid);
-                //c--;
-                continue;
-            }
-            else 
-            {
-               printf("[%d] - byteread: %10lld B/s (total: %10lld)\tbyewrite: %10lld B/s (total: %10lld)\n",
-                    start->info.pid,start->ioinfo.read_bytes_cur - start->ioinfo.read_bytes_prev, start->ioinfo.read_bytes_cur,
-                    start->ioinfo.write_bytes_cur - start->ioinfo.write_bytes_prev, start->ioinfo.write_bytes_cur);
 
-            }
-        }*/
-
-        //x:1 = y:100
-        /*if(start->info.pid == 24223)
-        {
-        unsigned long cur = start->cpuinfo.utime_cur + start->cpuinfo.stime_cur;
-        unsigned long prev = start->cpuinfo.utime_prev + start->cpuinfo.stime_prev;
-        printf("[%d] %s %.2lf CPU%\n",start->info.pid, start->info.name, ((double)(cur-prev) / clock_ticks_ps) * 100);
-        }*/
-
-    }
-}
-
-// Function to free the memory allocated for the linked list
 void freeList(PROCESS_LL* head) {
     PROCESS_LL* current = head;
     PROCESS_LL* next;
