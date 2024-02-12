@@ -208,7 +208,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
     struct dirent *entry;
     
     while ((entry = readdir(dir)) != NULL) {
-        if(entry->d_type == DT_DIR && alnum(entry->d_name))
+        if(entry->d_type == DT_DIR && num(entry->d_name))
         {
             allprocs++;
 
@@ -459,15 +459,13 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
 
             if (stat(linkpath, &file_stat) == -1) 
             {
-                if(errno == EACCES)
+                if(errno == EACCES || errno == ENOENT)
                 {
                     tname[0] = '?';
                     tname[1] = '\0';
                     strcpy(t.ttyname,tname);
                     goto done;
                 }
-                else if(errno == ENOENT)
-                    continue; //problem konkurentnosti, abortiraj
                 else
                 {
                     perror("findprocs: stat");

@@ -21,7 +21,7 @@ void convertseconds(unsigned long long seconds, int *days, int *hours, int *minu
     *remaining_seconds = *remaining_seconds % 60;
 }
 
-int alnum(char * s)
+int num(char * s)
 {
     int n  =strlen(s);
     for(int i = 0; i < n; i++)

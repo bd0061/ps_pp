@@ -44,7 +44,7 @@ void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int forma
 
 	for(int k = 0; k < pidlen; k++)
 	{
-		if(!alnum(pidbuffer[k]))
+		if(!num(pidbuffer[k]))
 		{
 			fprintf(stderr,"Invalid pid argument: %s\n",pidbuffer[k]);
 			exit(EXIT_FAILURE);
