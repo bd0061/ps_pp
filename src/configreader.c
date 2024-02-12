@@ -119,7 +119,7 @@ void readvals()
 				"#NORMALSORT_KEY=K\n"
 				"#PRIOSORT_KEY=K\n"	
 				"#CUSTOM_KEY=K\n"
-				"TOGGLESUSPEND_KEY=K\n"	
+				"#TOGGLESUSPEND_KEY=K\n"	
 				"#BACK_KEY=K\n"	
 				"#HELP_KEY=K\n"
 				"#END_KEY=K\n"

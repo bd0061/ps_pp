@@ -17,7 +17,7 @@ extern long clock_ticks_ps;
 
 void getmeminfo(long long * memtotal, long long * memfree, long long * memavailable, long long * swaptotal, long long *swapfree)
 {
-    char filepath[263];
+    char filepath[264];
     snprintf(filepath,sizeof(filepath),"%s/meminfo",MOUNT_POINT);
     FILE * fp = fopen(filepath,"r");
     if(fp == NULL)
@@ -99,7 +99,7 @@ void get_mount_point()
 
 void getuptime()
 {
-	char filepath[262];
+	char filepath[263];
 	snprintf(filepath,sizeof(filepath),"%s/uptime",MOUNT_POINT);
     FILE * f=  fopen(filepath,"r");
      

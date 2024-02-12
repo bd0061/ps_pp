@@ -113,7 +113,7 @@ static void printhelpmenu()
 	mvprintw(helpline++,4,"[%c] - Sort by default(PID)",NORMALSORT_KEY);
 	mvprintw(helpline++,4,"[%c] - Sort by CPU%%",CPUSORT_KEY);
 	mvprintw(helpline++,4,"[%c] - Sort by MEM%%",MEMSORT_KEY);
-	mvprintw(helpline++,4,"[%c] - Sort by priority%",PRIOSORT_KEY);
+	mvprintw(helpline++,4,"[%c] - Sort by priority",PRIOSORT_KEY);
 	mvprintw(helpline++,4,"[%c] - Display this help menu",HELP_KEY);
 	
 	helpline++;
@@ -1172,7 +1172,7 @@ int main(int argc, char ** argv)
 				normalSort = 0;
 				memSort = 0;
 				prioSort = 0;
-				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by CPU%\t");
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by CPU%%\t");
 				SUCCESS = 1;
 				countDown = 5;
 				sortCPU(&head);
@@ -1299,7 +1299,7 @@ int main(int argc, char ** argv)
 				int sig = fps[selectedLine].s == 'T' ? SIGCONT : SIGSTOP;
 				if(kill(fps[selectedLine].pid,sig) == 0)
 				{
-					snprintf(INFOMSG,sizeof(INFOMSG),"%suspended [%d]",fps[selectedLine].s == 'T' ? "Uns" : "S");
+					snprintf(INFOMSG,sizeof(INFOMSG),"%suspended [%d]",fps[selectedLine].s == 'T' ? "Uns" : "S",fps[selectedLine].pid);
 					SUCCESS = 1;
 					countDown = 5;
 					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);

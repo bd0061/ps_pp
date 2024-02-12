@@ -205,7 +205,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             
             PROCESSINFO t;
             t.name[0] = '\0';
-            char fullpath[300];
+            char fullpath[520];
             snprintf(fullpath,sizeof(fullpath),"%s/%s/stat",MOUNT_POINT,entry->d_name);
             FILE * infofile = fopen(fullpath,"r");
             //ekstremno redak slucaj: proces je ubijen onog momenta kada pokusamo da citamo njegove fajlove
@@ -257,7 +257,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
 
             fclose(infofile);
 
-            char statmpath[150];
+            char statmpath[520];
             snprintf(statmpath,sizeof(statmpath),"%s/%s/statm",MOUNT_POINT,entry->d_name);
             FILE * statmfile = fopen(statmpath,"r");
 
