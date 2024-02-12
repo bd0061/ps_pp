@@ -10,11 +10,12 @@
 #include <errno.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 #include <ncurses.h>
 #include "structures.h"
 #include "helper.h"
 
-extern int formatvals[24];
+extern int formatvals[35];
 extern long clock_ticks_ps;
 extern long btime;
 extern unsigned long long cputicks;
@@ -166,6 +167,23 @@ static void handleformat(PROCESSINFO * t)
     //FORMATCHECK_NUM(t->shr,formatvals[23]);
     handlemem_signed(t->shr, t->shr_display,23,sizeof(t->shr_display));
     
+    FORMATCHECK_UNSIGNED_NUM(t->minflt,formatvals[24]);
+    FORMATCHECK_UNSIGNED_NUM(t->cminflt,formatvals[25]);
+    FORMATCHECK_UNSIGNED_NUM(t->majflt,formatvals[26]);
+    FORMATCHECK_UNSIGNED_NUM(t->cmajflt,formatvals[27]);
+
+    FORMATCHECK_NUM(t->cutime * clock_ticks_ps,formatvals[28]);
+    FORMATCHECK_NUM(t->cutime * clock_ticks_ps,formatvals[29]);
+
+    FORMATCHECK_UNSIGNED_NUM(t->reslim,formatvals[30]);
+
+    FORMATCHECK_STRING(strsignal(t->exitsig),formatvals[31]);
+    FORMATCHECK_NUM(t->procno,formatvals[32]);
+
+    FORMATCHECK_UNSIGNED_NUM(t->rtprio,formatvals[33]);
+    FORMATCHECK_UNSIGNED_NUM(t->policy,formatvals[34]);
+
+
 
 }
 
@@ -236,23 +254,32 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             //////////////////////////////////////////////
             "%d "
             //////////////////////////////////////////////
-            "%*s %*s %*s %*s %*s %*s "
+            "%*d %*u %lu %lu %lu %lu "
             //////////////////////////////////////////////
             "%lu %lu "
             //////////////////////////////////////////////
-            "%*s %*s"
+            "%ld %ld "
             //////////////////////////////////////////////
             "%ld %ld %ld "
             //////////////////////////////////////////////
-            "%*s %llu"
+            "%*ld %llu "
             //////////////////////////////////////////////
-            "%lu %ld",
-            &(t.pid), &(t.state), &(t.ppid), &(t.sid), &(t.pgrp),
-            &(t.tty),
+            "%lu %ld %lu "
+            //////////////////////////////////////////////
+            "%*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu %*lu "
+            //////////////////////////////////////////////
+            "%d %d %u %u",
+
+            &(t.pid), &(t.state), &(t.ppid), 
+            &(t.pgrp), &(t.sid),
+            &(t.tty), 
+            &(t.minflt), &(t.cminflt), &(t.majflt), &(t.cmajflt),
             &(t.utime), &(t.stime),
-            &(t.prio), &(t.nice), &(t.threadno),
+            &(t.cutime), &(t.cstime),
+            &(t.prio), &(t.nice), &(t.threadno), 
             &(t.starttime),
-            &(t.virt),&(t.res)
+            &(t.virt),&(t.res), &(t.reslim),
+            &(t.exitsig),&(t.procno),&(t.rtprio),&(t.policy)
             );
 
             fclose(infofile);
@@ -509,11 +536,19 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             tcpu.stime_cur = t.stime;
             
             int trunval;
-
-            if(fno == 0 || strcmp(fbuffer[fno -1],"NAME"))
-                trunval = 200;
-            else 
-                trunval = 50;
+            int trunflag = 0;
+            if(fno > 0)
+            {
+                for(int i = 0; i  < fno; i++)
+                {
+                    if(strcmp(fbuffer[i],"NAME") == 0 && i != fno -1)
+                    {
+                        trunflag = 1;
+                        break;
+                    }
+                }
+            }
+            trunval = trunflag ? 35 : 250;
 
             truncate_str(t.name,trunval);
             

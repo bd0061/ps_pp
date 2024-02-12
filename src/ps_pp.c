@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <ncurses.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -9,6 +10,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
+#include <sched.h>
 
 #include "structures.h"
 #include "infocollect.h"
@@ -47,7 +49,7 @@ static double cpu_percent;
 
 PROCESS_LL * head;
 PROCESS_LL * start;
-int formatvals[24];
+int formatvals[35];
 long clock_ticks_ps;
 long pgsz;
 long long memtotal, memfree, memavailable,swaptotal,swapfree;
@@ -89,9 +91,9 @@ static void printhelpmenu()
 	mvprintw(helpline++,4,"-u, --user <username>");
 	mvprintw(helpline++,8,"Display processes owned by the specified user(s).");
 	mvprintw(helpline++,4,"-f, --format <format_string>");
-	mvprintw(helpline++,8,"Specify the output format using the provided format option(s)");
-	mvprintw(helpline++,4,"-n, --name <regex>");
-	mvprintw(helpline++,8,"Display information about processes whose command name match the pattern(s).");
+	mvprintw(helpline++,8,"Specify the output format using the provided format option(s).");
+	mvprintw(helpline++,4,"-n, --name <name>");
+	mvprintw(helpline++,8,"Display information about processes whose command name matches the string(s).");
 	helpline++;
 	attron(A_BOLD);
 	mvprintw(helpline++,0,"CURRENT KEY BINDINGS");
@@ -595,6 +597,76 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 				//snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lld %s",tabstart,formatvals[23], start->info.shr, tabbord);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[23],start->info.shr_display,tabbord);
 			}
+			else if (strcmp(buffer[i],"MINFLT") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[24],start->info.minflt,tabbord);
+			}
+			else if (strcmp(buffer[i],"CMINFLT") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[25],start->info.cminflt,tabbord);
+			}
+			else if (strcmp(buffer[i],"MAJFLT") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[26],start->info.majflt,tabbord);
+			}
+			else if (strcmp(buffer[i],"CMAJFLT") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[27],start->info.cmajflt,tabbord);
+			}
+			else if (strcmp(buffer[i],"CUTIME") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[28],start->info.cutime / clock_ticks_ps,tabbord);
+			}
+			else if (strcmp(buffer[i],"CSTIME") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[29],start->info.cstime / clock_ticks_ps,tabbord);
+			}
+			else if (strcmp(buffer[i],"RESLIM") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[30],start->info.reslim,tabbord);
+			}
+			else if (strcmp(buffer[i],"EXITSIG") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[31],strsignal(start->info.exitsig),tabbord);
+			}
+			else if (strcmp(buffer[i],"PROCNO") == 0)
+			{
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*d %s",tabstart,formatvals[32],start->info.procno,tabbord);
+			}
+			else if (strcmp(buffer[i],"RTPRIO") == 0)
+			{
+				if(start->info.rtprio != 0)
+					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*u %s",tabstart,formatvals[33],start->info.rtprio,tabbord);
+				else 
+					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[33],"-",tabbord);
+			}
+			else if (strcmp(buffer[i],"POLICY") == 0)
+			{
+				char * schedstring;
+
+				switch(start->info.policy)
+				{
+					case SCHED_OTHER:
+						schedstring = "RR";
+						break;
+					case SCHED_BATCH:
+						schedstring = "BATCH";
+						break;
+					case SCHED_IDLE:
+						schedstring = "IDLE";
+						break;
+					case SCHED_FIFO:
+						schedstring = "FCFS";
+						break;
+					case SCHED_RR:
+						schedstring = "RR";
+						break; 
+					default:
+						schedstring = "?";
+				}
+
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[34],schedstring,tabbord);
+			}
 		}
 		
 		add_final(final,start->info.pid,start->info.state);
@@ -741,15 +813,16 @@ int main(int argc, char ** argv)
 	int normalSort;
 	int cpuSort;
 	int prioSort;
-	int pid_args[32767];
+	int pid_args[500];
     //sve podrzane informacije o procesima
 	char *formats[] = 		  
 	{"PID","NAME","STATE","PPID","TTY","UTIME","STIME","PRIO","NICE","THREADNO",
-	"VIRT","RES","OWNER", "MEM%", "CPU%","START","SID","PGRP","C_WRITE","IO_READ","IO_WRITE","IO_READ/s","IO_WRITE/s","SHR"};
-	const int format_no = 24;
+	"VIRT","RES","OWNER", "MEM%", "CPU%","START","SID","PGRP","C_WRITE","IO_READ","IO_WRITE","IO_READ/s","IO_WRITE/s","SHR",
+	"MINFLT","CMINFLT","MAJFLT","CMAJFLT","CUTIME","CSTIME","RESLIM","EXITSIG","PROCNO","RTPRIO","POLICY"};
+	const int format_no = 35;
 
 	//opcije koje ce se pojaviti ako se ne unesu eksplicitno polja(prikaz je upravo onim redom kojim su definisana)
-	char *default_formats[24] = 
+	char *default_formats[35] = 
 	{"PID","STATE","PPID","TTY","PRIO","NICE", "SHR",
 	"VIRT","RES","OWNER", "MEM%", "CPU%","START","NAME"};
     int default_format_no = 14;
@@ -1027,6 +1100,33 @@ int main(int argc, char ** argv)
 				else 
 				{
 					snprintf(INFOMSG,sizeof(INFOMSG),"\tCouldn't kill [%d]: %s\t",fps[selectedLine].pid,strerror(errno));
+					SUCCESS = 0;
+					countDown = 5;
+				}
+			}
+			else if(ch == KILLKILL_KEY && fps_size > 0 && !HELP_MODE)
+			{
+				if(kill(fps[selectedLine].pid,SIGKILL) == 0)
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"\tKilled [%d] (SIGKILL)\t",fps[selectedLine].pid);
+					SUCCESS = 1;
+					countDown = 5;
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					clear();
+					if(selectedLine > 0 && fps_size > 0)
+					{
+						if(cursy == 0 && start_pspp > 0)
+						{
+							start_pspp--;
+						}
+						selectedLine--;
+					}
+					print_art();
+					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+				}
+				else 
+				{
+					snprintf(INFOMSG,sizeof(INFOMSG),"\tCouldn't kill [%d] (SIGKILL): %s\t",fps[selectedLine].pid,strerror(errno));
 					SUCCESS = 0;
 					countDown = 5;
 				}

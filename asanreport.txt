@@ -1,0 +1,18 @@
+AddressSanitizer:DEADLYSIGNAL
+=================================================================
+==7428==ERROR: AddressSanitizer: SEGV on unknown address 0x00000040c710 (pc 0x7f3132c847ec bp 0x7ffe2a10d930 sp 0x7ffe2a10d250 T0)
+==7428==The signal is caused by a WRITE memory access.
+    #0 0x7f3132c847ec in __vfscanf_internal (/lib64/libc.so.6+0x667ec) (BuildId: 788cdd41a15985bf8e0a48d213a46e07d58822df)
+    #1 0x7f3132c74e53 in __isoc99_vsscanf (/lib64/libc.so.6+0x56e53) (BuildId: 788cdd41a15985bf8e0a48d213a46e07d58822df)
+    #2 0x7f3132e89104 in __interceptor___isoc99_vsscanf (/lib64/libasan.so.8+0x89104) (BuildId: 7fcb7759bc17ef47f9682414b6d99732d6a6ab0c)
+    #3 0x7f3132e8921e in __interceptor___isoc99_sscanf (/lib64/libasan.so.8+0x8921e) (BuildId: 7fcb7759bc17ef47f9682414b6d99732d6a6ab0c)
+    #4 0x406cea in findprocs (/home/b/ps_pp/bin/ps_pp+0x406cea) (BuildId: 7e0a30f3fcd02fc23d44342c0a01c7cebbbaff7c)
+    #5 0x40abe3 in updateListInternal.constprop.0 (/home/b/ps_pp/bin/ps_pp+0x40abe3) (BuildId: 7e0a30f3fcd02fc23d44342c0a01c7cebbbaff7c)
+    #6 0x40308f in main (/home/b/ps_pp/bin/ps_pp+0x40308f) (BuildId: 7e0a30f3fcd02fc23d44342c0a01c7cebbbaff7c)
+    #7 0x7f3132c46149 in __libc_start_call_main (/lib64/libc.so.6+0x28149) (BuildId: 788cdd41a15985bf8e0a48d213a46e07d58822df)
+    #8 0x7f3132c4620a in __libc_start_main_impl (/lib64/libc.so.6+0x2820a) (BuildId: 788cdd41a15985bf8e0a48d213a46e07d58822df)
+    #9 0x405034 in _start (/home/b/ps_pp/bin/ps_pp+0x405034) (BuildId: 7e0a30f3fcd02fc23d44342c0a01c7cebbbaff7c)
+
+AddressSanitizer can not provide additional info.
+SUMMARY: AddressSanitizer: SEGV (/lib64/libc.so.6+0x667ec) (BuildId: 788cdd41a15985bf8e0a48d213a46e07d58822df) in __vfscanf_internal
+==7428==ABORTING

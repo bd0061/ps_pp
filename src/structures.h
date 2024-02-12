@@ -46,6 +46,20 @@ typedef struct PROCESSINFO
 	unsigned long utime_prev;
 	unsigned long stime_prev;
 
+	unsigned long minflt;
+	unsigned long cminflt;
+
+	unsigned long majflt;
+	unsigned long cmajflt;
+
+	long cutime;
+	long cstime;
+	unsigned long reslim;
+
+	int exitsig;
+	int procno;
+	unsigned rtprio;
+	unsigned policy;
 
 
 
