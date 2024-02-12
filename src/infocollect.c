@@ -36,7 +36,7 @@ static int collect_io_info(PROCESSINFO_IO * buffer, char * pidname)
     FILE * io = fopen(iopath,"r");
     if(io == NULL)
     {
-        if(errno == ENOENT)
+        if(errno == ENOENT || errno == EPERM)
         {
             return -1;
         }
@@ -230,7 +230,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             //zato gledamo da errno bude samo iz sistemskih razloga(memorijske greske itd)
             if(infofile == NULL) 
             {
-                if(errno == ENOENT || errno == EACCES) //process prekinut upravo sad
+                if(errno == ENOENT || errno == EACCES || errno == EPERM) //process prekinut upravo sad ili hidepid niska privilegija
                 {
                     continue;
                 }
@@ -291,7 +291,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             
             if(statmfile == NULL)
             {
-                if(errno == ENOENT || errno == EACCES)
+                if(errno == ENOENT || errno == EACCES || errno == EPERM)
                     continue;
                 perror("statm: fopen:");
                 exit(EXIT_FAILURE);
@@ -310,7 +310,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             
             if(fullcommand == NULL)
             {
-                if(errno == ENOENT || errno == EACCES)
+                if(errno == ENOENT || errno == EACCES || errno == EPERM)
                     continue;
                 perror("fopen");
                 exit(EXIT_FAILURE);
@@ -394,7 +394,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
                 FILE * statusfile = fopen(_statuspath,"r");
                 if(statusfile == NULL)
                 {
-                    if(errno == ENOENT || errno == EACCES) //proces prekinut upravo sad
+                    if(errno == ENOENT || errno == EACCES || errno == EPERM) //proces prekinut upravo sad
                     {
                         continue;
                     }
@@ -459,7 +459,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
 
             if (stat(linkpath, &file_stat) == -1) 
             {
-                if(errno == EACCES || errno == ENOENT)
+                if(errno == EACCES || errno == ENOENT || errno == EPERM)
                 {
                     tname[0] = '?';
                     tname[1] = '\0';
@@ -478,7 +478,7 @@ void findprocs(PROCESS_LL ** head, int * pid_args, int pid_count, char ** user_a
             ssize_t len;
             if((len = readlink(linkpath, tname, sizeof(tname) - 1)) == -1)
             {
-                if(errno == ENOENT) 
+                if(errno == ENOENT || errno == EPERM) 
                 {
                     continue; //process dead mid read
                 }
