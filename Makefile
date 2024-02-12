@@ -1,9 +1,6 @@
 # Compiler
 CC = gcc
 
-# Compiler flags
-CFLAGS = -Werror
-
 # Source and object directories
 SRC_DIR = src
 OBJ_DIR = obj
@@ -27,11 +24,11 @@ $(BIN_DIR):
 
 # Rule to build object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(CC) $(CFLAGS) -O2 -c $< -o $@
+	$(CC) -O2 -c $< -o $@
 
 # Rule to build the executable
 $(EXECUTABLE): $(OBJ_FILES)
-	$(CC) -lncurses $^  -o $@
+	$(CC) $^ -lncurses -o $@
 
 # Clean target
 clean:

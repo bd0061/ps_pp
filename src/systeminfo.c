@@ -128,7 +128,7 @@ double readSystemCPUTime()
 		double seconds_cur;
 	} CPU;
    
-	char filepath[260];
+	char filepath[261];
 	snprintf(filepath,sizeof(filepath),"%s/stat",MOUNT_POINT);
     FILE *stat_file = fopen(filepath, "r");
     if (stat_file == NULL) {
