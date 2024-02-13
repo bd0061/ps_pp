@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <dirent.h>
@@ -14,6 +16,8 @@
 #include <ncurses.h>
 #include "structures.h"
 #include "helper.h"
+
+
 
 extern int formatvals[35];
 extern long clock_ticks_ps;

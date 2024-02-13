@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200112L
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>

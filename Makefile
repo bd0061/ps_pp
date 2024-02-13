@@ -28,7 +28,7 @@ $(OBJ_DIR):
 
 # Rule to build object files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
-	$(CC) -O2 -c $< -o $@
+	$(CC) -std=c17 -O2 -c $< -o $@
 
 # Rule to build the executable
 $(EXECUTABLE): $(OBJ_FILES)
