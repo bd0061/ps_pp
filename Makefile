@@ -22,8 +22,12 @@ all: $(BIN_DIR) $(EXECUTABLE)
 $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
+# Rule to create the obj directory
+$(OBJ_DIR):
+	mkdir -p $(OBJ_DIR)
+
 # Rule to build object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
 	$(CC) -O2 -c $< -o $@
 
 # Rule to build the executable
@@ -35,6 +39,3 @@ clean:
 	rm -f $(OBJ_DIR)/*.o $(EXECUTABLE)
 
 .PHONY: all clean
-
-
-
