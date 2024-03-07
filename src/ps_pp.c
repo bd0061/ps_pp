@@ -30,9 +30,6 @@
 	#define tabstart (i == 0 ? " " : "")
 #endif
 
-//#define INFOMSG_POSITION 15 - LOGO_HEIGHT * NOLOGO
-//#define FILTERMSG_POSITION 16 - LOGO_HEIGHT * NOLOGO
-
 #define INFOMSG_POSITION 15 - NOLOGO * (LOGO_HEIGHT - 1)
 #define FILTERMSG_POSITION 16 - NOLOGO * (LOGO_HEIGHT - 1)
 
