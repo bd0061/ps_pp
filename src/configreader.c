@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <stdio.h>
 #include <assert.h>
@@ -29,6 +30,7 @@ char NICEMINUS_KEY;
 char PRIOSORT_KEY;
 char TOGGLESUSPEND_KEY;
 char KILLKILL_KEY;
+int NOLOGO;
 #define PS_PP_COLORS 7
 #define PS_PP_KEYS 17
 
@@ -44,6 +46,8 @@ static int isempty(char * s)
 
 void readvals()
 {
+	NOLOGO = 0;
+
 	int COLOR_BG_CHECK = 0;
 	int COLOR_TEXT_CHECK = 0;
 	int COLOR_PRCNT_BAR_CHECK = 0;
@@ -123,6 +127,8 @@ void readvals()
 				"#BACK_KEY=K\n"	
 				"#HELP_KEY=K\n"
 				"#END_KEY=K\n"
+				"\n\n#uncomment for no logo\n"
+				"#NOLOGO"
 				);
 				
 				fclose(configskeleton);
@@ -236,6 +242,10 @@ void readvals()
 		else if(sscanf(line,"KILLKILL_KEY=%c",&KILLKILL_KEY))
 		{
 			KILLKILL_KEY_CHECK = 1;
+		}
+		else if (strcmp(line,"NOLOGO\n") == 0)
+		{
+			NOLOGO = 1;
 		}
 		else if(!isempty(line))
 		{

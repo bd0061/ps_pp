@@ -29,6 +29,6 @@ extern char NICEPLUS_KEY;
 extern char NICEMINUS_KEY;
 extern char TOGGLESUSPEND_KEY;
 extern char KILLKILL_KEY;
-
+extern int NOLOGO;
 
 #endif

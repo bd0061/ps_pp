@@ -20,6 +20,8 @@
 #include "dynamic_array_manager.h"
 #include "systeminfo.h"
 
+#define LOGO_HEIGHT 6
+
 #ifdef FORMAT_TABLE
 	#define tabbord (i == buflength - 1 ? "|" : "")
 	#define tabstart (i == 0 ? "|" : "")
@@ -28,8 +30,11 @@
 	#define tabstart (i == 0 ? " " : "")
 #endif
 
-#define INFOMSG_POSITION 15
-#define FILTERMSG_POSITION 16
+//#define INFOMSG_POSITION 15 - LOGO_HEIGHT * NOLOGO
+//#define FILTERMSG_POSITION 16 - LOGO_HEIGHT * NOLOGO
+
+#define INFOMSG_POSITION 15 - NOLOGO * (LOGO_HEIGHT - 1)
+#define FILTERMSG_POSITION 16 - NOLOGO * (LOGO_HEIGHT - 1)
 
 #define LAG 10 //ms
 #define REFRESH_RATE 1000 //ms
@@ -185,7 +190,7 @@ static void handle_io(char * dest, size_t destsize, long long target, int blocke
 
 	if(blocked)
 	{
-		snprintf(dest,sizeof(dest),"%s", "N/A");
+		snprintf(dest,destsize,"%s", "N/A");
 
 	}
 	else 
@@ -440,30 +445,33 @@ static void print_stats()
 
 static void print_art()
 {
-	for(int i = 0; i < 6; i++)
+	if(!NOLOGO)
 	{
-		for(int j = 0; j < x && j < 2048; j++)
+		for(int i = 0; i < 6; i++)
 		{
-			mvprintw(i,j," ");
+			for(int j = 0; j < x && j < 2048; j++)
+			{
+				mvprintw(i,j," ");
+			}
 		}
-	}
-	if(x > 45)
-	{
-		mvprintw(0,x/2 - 16, "    ____  _____                \n");
-		mvprintw(1,x/2 - 16, "   / __ \\/ ___/       __    __ \n");
-		mvprintw(2,x/2 - 16, "  / /_/ /\\__ \\     __/ /___/ /_\n");
-		mvprintw(3,x/2 - 16, " / ____/___/ /    /_  __/_  __/\n");
-		mvprintw(4,x/2 - 16, "/_/    /____/      /_/   /_/   \n");
-	}
-	else 
-	{
-		mvprintw(2,x/2 - 8," _  __        \n");
-		mvprintw(3,x/2 - 8,"|_)(_   _|__|_\n");
-		mvprintw(4,x/2 - 8,"|  __)   |  |  \n");
-	}
-	
+		if(x > 45)
+		{
+			mvprintw(0,x/2 - 16, "    ____  _____                \n");
+			mvprintw(1,x/2 - 16, "   / __ \\/ ___/       __    __ \n");
+			mvprintw(2,x/2 - 16, "  / /_/ /\\__ \\     __/ /___/ /_\n");
+			mvprintw(3,x/2 - 16, " / ____/___/ /    /_  __/_  __/\n");
+			mvprintw(4,x/2 - 16, "/_/    /____/      /_/   /_/   \n");
+		}
+		else 
+		{
+			mvprintw(2,x/2 - 8," _  __        \n");
+			mvprintw(3,x/2 - 8,"|_)(_   _|__|_\n");
+			mvprintw(4,x/2 - 8,"|  __)   |  |  \n");
+		}
+		
 
-	mvprintw(5,0,"\n");
+		mvprintw(5,0,"\n");
+	}
 }
 
 /*odstampaj prvi red u outputu vodeci racuna o formatiranju i tome gde staviti znak | */
@@ -676,7 +684,7 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 static void print_upper_menu_and_mod_offset(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
 {
 
-	GLOBAL_CURSE_OFFSET = 6;
+	GLOBAL_CURSE_OFFSET =  NOLOGO ? 1 : LOGO_HEIGHT;
 	print_stats(); //menjaju offset
 	
 	if(fno != 0)
@@ -862,7 +870,7 @@ int main(int argc, char ** argv)
     fps_size = 0;
 	selectedLine = 0;
 	
-	GLOBAL_CURSE_OFFSET = 6;
+	GLOBAL_CURSE_OFFSET =  NOLOGO ? 1 : LOGO_HEIGHT;
 	LIST_START = 0;
 	int HELP_MODE = 0;
 	
