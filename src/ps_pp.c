@@ -543,7 +543,9 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 			{
 				unsigned long cur = start->cpuinfo.utime_cur + start->cpuinfo.stime_cur;
 				unsigned long prev = start->cpuinfo.utime_prev + start->cpuinfo.stime_prev;
-				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*.2lf %s",tabstart,formatvals[14],((double)(cur-prev)/clock_ticks_ps) * 100, tabbord);
+				double cpu_prcnt = ((double)(cur-prev)/clock_ticks_ps) * 100;
+				if(cpu_prcnt > 100.0f) cpu_prcnt = 100.0f; // :)
+				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*.2lf %s",tabstart,formatvals[14],cpu_prcnt, tabbord);
 
 			}
 				
