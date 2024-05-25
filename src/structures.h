@@ -2,6 +2,7 @@
 #define STRUCTURES_H
 #include<time.h>
 
+
 struct final_print_struct
 {
 	char mesg[2048];

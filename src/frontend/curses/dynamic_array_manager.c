@@ -5,6 +5,9 @@
 
 extern PROCESS_LL * head;
 
+
+//niz filtirarnih struktura koje sadrze sve podatke iz originalne kao cist string i upamcenim pid-jem i stanjem,
+// koristi se u manipulisanju procesa uzivo 
 struct final_print_struct *fps;
 int fps_size;
 
