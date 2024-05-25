@@ -1,4 +1,5 @@
 # Compiler
+SHELL := /bin/bash
 CC = gcc
 
 # Source and object directories
@@ -7,10 +8,10 @@ OBJ_DIR = obj
 BIN_DIR = bin
 
 # Installation directories
-INSTALL_DIR_USER = ~/bin
+INSTALL_DIR_USER = $(HOME)/.local/bin
 INSTALL_DIR_SYSTEM = /usr/local/bin
 CONF_DIR = /etc
-CONF_DIR_USR = ~/.config/
+CONF_DIR_USR = ~/.config
 CONF_D_DIR = $(CONF_DIR)/ps_pp.conf.d
 CONF_U_DIR = $(CONF_DIR_USR)/ps_pp.conf.d
 
@@ -47,10 +48,11 @@ clean:
 	rm -f $(OBJ_DIR)/*.o $(EXECUTABLE)
 
 install_user: $(EXECUTABLE)
+	mkdir -p $(INSTALL_DIR_USER)
 	cp $(EXECUTABLE) $(INSTALL_DIR_USER)
 	mkdir -p $(CONF_U_DIR)
 	touch $(CONF_U_DIR)/ps_pp.conf
-	echo -e "#color format: RGB(values 0-1000)\n\
+	@echo -e "#color format: RGB(values 0-1000)\n\
 #key format: single character([A-Z][a-z])\n\
 #available variables:\n\n\
 #COLOR_BG=(R,G,B)\n\
@@ -81,12 +83,15 @@ install_user: $(EXECUTABLE)
 	cp -r themes $(CONF_U_DIR)
 	rm -rf $(BIN_DIR)
 	rm -rf $(OBJ_DIR)
+	@if [[ ":$(PATH):" != *":$(INSTALL_DIR_USER):"* ]]; then \
+	echo "WARN: $(INSTALL_DIR_USER) is not included in PATH"; \
+	fi
 
 install_system: $(EXECUTABLE)
 	cp $(EXECUTABLE) $(INSTALL_DIR_SYSTEM)
 	mkdir -p $(CONF_D_DIR)
 	touch $(CONF_D_DIR)/ps_pp.conf
-	echo -e "#color format: RGB(values 0-1000)\n\
+	@echo -e "#color format: RGB(values 0-1000)\n\
 #key format: single character([A-Z][a-z])\n\
 #available variables:\n\n\
 #COLOR_BG=(R,G,B)\n\
@@ -121,7 +126,6 @@ install_system: $(EXECUTABLE)
 uninstall_user: 
 	rm -f $(INSTALL_DIR_USER)/ps_pp
 	rm -rf $(CONF_U_DIR)
-
 uninstall_system: 
 	rm -f $(INSTALL_DIR_SYSTEM)/ps_pp
 	rm -rf $(CONF_D_DIR)
