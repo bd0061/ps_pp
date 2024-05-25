@@ -1,5 +1,6 @@
 #ifndef COMPONENTS_H
 #define COMPONENTS_H
+
 #define LOGO_HEIGHT 6
 
 #ifdef FORMAT_TABLE
@@ -28,9 +29,6 @@ extern int start_pspp;
 
 
 extern int formatvals[35];
-extern long pgsz;
-extern long btime;
-extern unsigned long uptime;
 extern char NAME_FILTER[256];
 
 

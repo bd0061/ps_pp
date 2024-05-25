@@ -15,6 +15,25 @@
 #include "dynamic_array_manager.h"
 #include "../../backend_api.h"
 
+#define LOGO_HEIGHT 6
+
+#ifdef FORMAT_TABLE
+	#define tabbord (i == buflength - 1 ? "|" : "")
+	#define tabstart (i == 0 ? "|" : "")
+#else 
+	#define tabbord (i == buflength - 1 ? " " : "")
+	#define tabstart (i == 0 ? " " : "")
+#endif
+
+#define INFOMSG_POSITION 15 - NOLOGO * (LOGO_HEIGHT - 1)
+#define FILTERMSG_POSITION 16 - NOLOGO * (LOGO_HEIGHT - 1)
+
+#define LAG 10 //ms
+#define REFRESH_RATE 1000 //ms
+
+
+
+
 char INFOMSG[65];
 int GLOBAL_CURSE_OFFSET;
 int LIST_START;
@@ -27,10 +46,6 @@ int start_pspp;
 
 
 int formatvals[35];
-long clock_ticks_ps;
-long pgsz;
-long btime;
-unsigned long uptime;
 
 char NAME_FILTER[256];
 

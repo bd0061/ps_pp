@@ -10,7 +10,7 @@ extern long btime;
 extern long clock_ticks_ps;
 extern int formatvals[35];
 
-unsigned int flags;
+extern unsigned int flags;
 
 /*jednostavan algoritam za konverziju vremena u sekundama u dane, sate, minute, i preostale sekunde. 
 (koristi se kod racunanje uptime-a) */

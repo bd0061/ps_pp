@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "structures.h"
-#include "helper.h"
+#include "../../structures.h"
+#include "../../helper.h"
 
 extern PROCESS_LL * head;
 

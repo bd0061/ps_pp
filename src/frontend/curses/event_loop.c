@@ -18,9 +18,48 @@
 #include "dynamic_array_manager.h"
 
 
-static void updateListInternalEx()
+static void updateListInternalEx(int * pid_args, int pno, char ** ubuffer, int uno, char ** nbuffer, int nno,int fno, char ** fbuffer, char ** default_formats, int default_format_no, char ** formats, int format_no,
+unsigned int flags)
 {
-				clear_and_reset_array(&fps, &fps_size);
+	for(int i = 0; i < format_no; i++)
+	{
+		formatvals[i] = strlen(formats[i]);
+	}
+	formatvals[13] = 7; //mem% 
+	formatvals[14] = 6; //cpu% 
+	formatvals[15] = 5; //start
+	clear_and_reset_array(&fps, &fps_size);
+	///
+	//updateListInternal(pid_args, pno, ubuffer, uno, nbuffer, nno,fno, fbuffer, default_formats, default_format_no, formats, format_no, flags);
+	findprocs(&head, pid_args, pno, ubuffer, uno,nbuffer,nno,fbuffer,fno);
+	sort(&head,flags);
+
+	start = head;
+	while(start != NULL)
+	{
+		//pokupiti mrtve procese
+		char _buf[1024];
+		snprintf(_buf,sizeof(_buf),"%s/%d",MOUNT_POINT,start->info.pid);
+		if(stat(_buf,NULL) != 0 && errno == ENOENT)
+		{
+			PROCESS_LL * temp = start->next;
+			removeElement(&head, start->info.pid);
+			start = temp;
+			continue;
+		}
+		if(fno != 0)
+		{
+			collect_data(fbuffer,fno,start);
+		}
+		else 
+		{
+			collect_data(default_formats,default_format_no,start);
+
+		}
+		start = start->next;
+
+	}
+	///
 }
 
 
@@ -126,7 +165,7 @@ void start_main_ncurses()
 			getmeminfo(&memtotal, &memfree, &memavailable,&swaptotal,&swapfree);
 			cpu_percent = readSystemCPUTime();	
 
-			updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats,format_no,flags);
+			updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats,format_no,flags);
 			////
 
 			if(!HELP_MODE)
@@ -311,7 +350,7 @@ void start_main_ncurses()
 					SUCCESS = 1;
 					countDown = 5;
 
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+					updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					clear();
 					if(selectedLine > 0 && fps_size > 0)
 					{
@@ -339,7 +378,7 @@ void start_main_ncurses()
 					SUCCESS = 1;
 					countDown = 5;
 
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+					updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					clear();
 					if(selectedLine > 0 && fps_size > 0)
 					{
@@ -389,7 +428,7 @@ void start_main_ncurses()
 				cl[0] = "PID";cl[1] = "PPID";cl[2] = "PGRP";cl[3] = "SID";cl[4] = "NAME";
 				*j = 5;
 
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -429,7 +468,7 @@ void start_main_ncurses()
 				cl[6] = "NAME";
 				*j = 7;
 
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -478,7 +517,7 @@ void start_main_ncurses()
 				cl[13] = "NAME";
 				*j = 14;
 
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -489,7 +528,7 @@ void start_main_ncurses()
 				SUCCESS = 1;
 				countDown = 5;
 				sort(&head,flags);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -500,7 +539,7 @@ void start_main_ncurses()
 				SUCCESS = 1;
 				countDown = 5;
 				sort(&head,flags);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -511,7 +550,7 @@ void start_main_ncurses()
 				SUCCESS = 1;
 				countDown = 5;
 				sort(&head,flags);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -522,7 +561,7 @@ void start_main_ncurses()
 				SUCCESS = 1;
 				countDown = 5;
 				sort(&head,flags);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
 			else if(ch == NORMALSORT_KEY && fps_size > 0 && flags != SORT_PID && !HELP_MODE)
@@ -532,7 +571,7 @@ void start_main_ncurses()
 				SUCCESS = 1;
 				countDown = 5;
 				sort(&head,SORT_PID);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -545,7 +584,7 @@ void start_main_ncurses()
 				countDown = 5;
 				
 				sort(&head,flags);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -576,7 +615,7 @@ void start_main_ncurses()
 					}
 					f.no = saved_custom_length;
 					
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+					updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				}
 			}
@@ -584,7 +623,7 @@ void start_main_ncurses()
 			{
 				start_pspp = 0;
 				selectedLine = 0;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				
 
@@ -597,7 +636,7 @@ void start_main_ncurses()
 				selectedLine = fps_size - 1;
 				if(fps_size > y - LIST_START)
 					start_pspp = fps_size -(y - LIST_START);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				
 
@@ -622,7 +661,7 @@ void start_main_ncurses()
 						snprintf(INFOMSG,sizeof(INFOMSG),"\t%s nice for [%d]",ch == NICEPLUS_KEY ? "Incremented" : "Decremented",fps[selectedLine].pid);
 						SUCCESS = 1;
 						countDown = 5;
-						updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+						updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 						displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 					}
 					else 
@@ -642,7 +681,7 @@ void start_main_ncurses()
 					snprintf(INFOMSG,sizeof(INFOMSG),"%suspended [%d]",fps[selectedLine].s == 'T' ? "Uns" : "S",fps[selectedLine].pid);
 					SUCCESS = 1;
 					countDown = 5;
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+					updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				}
 				else 
@@ -687,7 +726,7 @@ void start_main_ncurses()
 				print_art();
 				selectedLine = 0;
 				start_pspp = 0;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
 			else if(ch == KEY_BACKSPACE && strlen(NAME_FILTER) > 0)
@@ -697,7 +736,7 @@ void start_main_ncurses()
 				print_art();
 				selectedLine = 0;
 				start_pspp = 0;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				updateListInternalEx(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
 		}

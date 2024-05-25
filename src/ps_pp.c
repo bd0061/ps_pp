@@ -20,24 +20,33 @@
 #include "systeminfo.h"
 
 
-#include "frontend/curses/dynamic_array_manager.h"
-#include "frontend/curses/components.h"
-
+// #include "frontend/curses/dynamic_array_manager.h"
+// #include "frontend/curses/components.h"
+void start_main_ncurses();
 
 PROCESS_LL * head;
 PROCESS_LL * start;
-
+long btime;
 unsigned long long allprocs;
 unsigned long long countprocs;
+long clock_ticks_ps;
+long pgsz;
+unsigned long uptime;
 
 
 char MOUNT_POINT[256];
 
 //NA OSNOVU OVE PROMENLJIVE ODREDITI PO CEMU SORTIRATI
 unsigned int flags = SORT_PID;
-double cpu_percent;
 
-get_mount_point();
+
+double cpu_percent;
+long long memtotal;
+long long memfree; 
+long long memavailable;
+long long swaptotal;
+long long swapfree;
+
 
 //SVE PODRZANE OPCIJE ZA "FORMAT"
 char *formats[] = 		  
@@ -58,14 +67,21 @@ int default_format_no = 14;
 /////////////////////////////////////////////////////////////////////////////////////
 
 
+//UNOS KRATKIH I DUGIH PODRZANIH OPCIJA
+/* STRUCT OPTION:
+- KRATAK NAZIV
+- PUN NAZIV
+- BAFER GDE CE BITI VREDNOSTI ARGUMENATA OPCIJE (STRINGOVI)
+- BROJ ARGUMENATA
+*/
+struct option f = {"-f","--format",NULL,0};
+struct option p = {"-p","--pid",NULL,0};
+struct option u = {"-u","--user",NULL,0};
+struct option n = {"-n","--name",NULL,0};
 
 
-static void updateSysinfo()
-{
-	getuptime();
-	getmeminfo(&memtotal, &memfree, &memavailable,&swaptotal,&swapfree);
-	cpu_percent = readSystemCPUTime();	
-}
+
+
 
 
 /*ponovo pokupi podatke u spregnutu listu, obrisi mrtve procese i procese koji nam vise ne trebaju za trenutnu selekciju. */
@@ -74,15 +90,8 @@ void updateListInternal
 unsigned int flags)
 {
 	
-	findprocs(&head, pid_args, p.no, u.buffer, u.no,n.buffer,n.no,f.buffer,f.no);
+	findprocs(&head, pid_args, pno, ubuffer, uno,nbuffer,nno,fbuffer,fno);
 	sort(&head,flags);
-	for(int i = 0; i < format_no; i++)
-	{
-		formatvals[i] = strlen(formats[i]);
-	}
-	formatvals[13] = 7; //mem% 
-	formatvals[14] = 6; //cpu% 
-	formatvals[15] = 5; //start
 
 	start = head;
 	while(start != NULL)
@@ -99,16 +108,6 @@ unsigned int flags)
 
 
 		}
-
-		if(fno != 0)
-		{
-			collect_data(fbuffer,fno,start);
-		}
-		else 
-		{
-			collect_data(default_formats,default_format_no,start);
-
-		}
 		start = start->next;
 
 	}
@@ -117,17 +116,7 @@ unsigned int flags)
 
 int main(int argc, char ** argv)
 {
-	//UNOS KRATKIH I DUGIH PODRZANIH OPCIJA
-	/* STRUCT OPTION:
-	- KRATAK NAZIV
-	- PUN NAZIV
-	- BAFER GDE CE BITI VREDNOSTI ARGUMENATA OPCIJE (STRINGOVI)
-	- BROJ ARGUMENATA
-	*/
-	struct option f = {"-f","--format",NULL,0};
-	struct option p = {"-p","--pid",NULL,0};
-	struct option u = {"-u","--user",NULL,0};
-	struct option n = {"-n","--name",NULL,0};
+	get_mount_point();
 	/////////////////////////////////////////////////////////////////////////////////////
 	
 
@@ -146,5 +135,5 @@ int main(int argc, char ** argv)
 
 
 
-	start_main_ncurses_loop();
+	start_main_ncurses();
 }

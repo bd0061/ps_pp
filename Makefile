@@ -16,16 +16,18 @@ CONF_D_DIR = $(CONF_DIR)/ps_pp.conf.d
 CONF_U_DIR = $(CONF_DIR_USR)/ps_pp.conf.d
 
 # Source files
-SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+SRC_FILES = $(shell find . -name '*.c')
 
-# Object files
-OBJ_FILES = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC_FILES))
+# Object files (flattened)
+OBJ_FILES = $(patsubst ./%.c, $(OBJ_DIR)/%.o, $(SRC_FILES))
 
 # Executable name
 EXECUTABLE = $(BIN_DIR)/ps_pp
 
+
+
 # Main target
-all: $(BIN_DIR) $(EXECUTABLE)
+all: $(BIN_DIR) $(OBJ_DIR) $(EXECUTABLE)
 
 # Rule to create the bin directory
 $(BIN_DIR):
@@ -36,16 +38,18 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 # Rule to build object files
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+$(OBJ_DIR)/%.o: %.c | $(OBJ_DIR)
+	@mkdir -p obj/src/frontend/curses
+	@mkdir -p bin/
 	$(CC) -std=c17 -O2 -c $< -o $@
 
 # Rule to build the executable
 $(EXECUTABLE): $(OBJ_FILES)
-	mkdir -p bin/
 	$(CC) $^ -lncurses -o $@
 
 clean:
-	rm -f $(OBJ_DIR)/*.o $(EXECUTABLE)
+	rm -rf $(OBJ_DIR)
+	rm -rf $(BIN_DIR)
 
 install_user: $(EXECUTABLE)
 	mkdir -p $(INSTALL_DIR_USER)
@@ -126,11 +130,9 @@ install_system: $(EXECUTABLE)
 uninstall_user: 
 	rm -f $(INSTALL_DIR_USER)/ps_pp
 	rm -rf $(CONF_U_DIR)
+
 uninstall_system: 
 	rm -f $(INSTALL_DIR_SYSTEM)/ps_pp
 	rm -rf $(CONF_D_DIR)
-
-
-
 
 .PHONY: all clean install_user install_system uninstall_user uninstall_system

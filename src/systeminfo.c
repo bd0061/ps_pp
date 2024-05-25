@@ -137,6 +137,7 @@ double readSystemCPUTime()
 		free(fps);
 		endwin();
         perror("error opening stat");
+        puts(filepath);
         exit(EXIT_FAILURE);
     }
 
