@@ -13,6 +13,7 @@
 #include "parseopts.h"
 
 
+
 /* nakon uspesnog parsiranja argumenata, ova funkcija radi sledece:
  * 1) proverava da li su sve snabdevene proces informacije legitimne(postoje kao opcija)
  * 2) proverava da li su uneti pid brojevi  i da li postoje na sistemu

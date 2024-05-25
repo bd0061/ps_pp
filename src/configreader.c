@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <assert.h>
+#include <unistd.h>
 
 
 int COLOR_BG[3];
@@ -78,66 +79,27 @@ void readvals()
 	int TOGGLESUSPEND_KEY_CHECK = 0;
 	int KILLKILL_KEY_CHECK = 0;
 	int defenv = 1;
-
 	
-	char * home = getenv("XDG_CONFIG_HOME");
 	FILE * configreader = NULL;
-	if(home == NULL)
-	{
-		defenv = 0;
-		home = getenv("HOME");
-		if(home == NULL)
-		{
-			goto defaultcolor;
-		}
-	}
 	char fullpath[1024];
-	if(defenv)
-		snprintf(fullpath,sizeof(fullpath),"%s/ps_pp.conf",home);
-	else 
-		snprintf(fullpath,sizeof(fullpath),"%s/.config/ps_pp.conf",home);
+	char * usr = getenv("USER");
+	if(usr == NULL)
+		goto defaultcolor;
 
+	snprintf(fullpath,sizeof(fullpath),"/home/%s/.config/ps_pp.conf.d/ps_pp.conf",usr);
+
+	again: ;
+	
 	configreader = fopen(fullpath,"r");
 
 	if(configreader == NULL)
 	{
 		if(errno == ENOENT)
 		{
-			FILE * configskeleton = fopen(fullpath,"w");
-			if(configskeleton != NULL)
+			if(strcmp(fullpath,"/etc/ps_pp.conf.d/ps_pp.conf") != 0)
 			{
-				fprintf(configskeleton,
-				"#color format: RGB(values 0-1000)\n"
-				"#key format: single character([A-Z][a-z])\n"
-				"#available variables:\n\n"
-				"#COLOR_BG=(R,G,B)\n"
-				"#COLOR_TEXT=(R,G,B)\n"
-				"#COLOR_PRCNT_BAR=(R,G,B)\n"
-				"#COLOR_SELECTPROC=(R,G,B)\n"
-				"#COLOR_INFOTEXT=(R,G,B)\n"
-				"#COLOR_INFO_SUC=(R,G,B)\n"
-				"#COLOR_INFO_ERR=(R,G,B)\n"
-				"#QUIT_KEY=K\n"
-				"#KILL_KEY=K\n"
-				"#IO_KEY=K\n"
-				"#ID_KEY=K\n"
-				"#CLASSIC_KEY=K\n"
-				"#MEMSORT_KEY=K\n"
-				"#CPUSORT_KEY=K\n"
-				"#NORMALSORT_KEY=K\n"
-				"#PRIOSORT_KEY=K\n"	
-				"#TIMESORT_KEY=K\n"
-				"#TIMESORT_KEY_OLDEST=K\n"		
-				"#CUSTOM_KEY=K\n"
-				"#TOGGLESUSPEND_KEY=K\n"	
-				"#BACK_KEY=K\n"	
-				"#HELP_KEY=K\n"
-				"#END_KEY=K\n"
-				"\n\n#uncomment for no logo\n"
-				"#NOLOGO"
-				);
-				
-				fclose(configskeleton);
+				snprintf(fullpath,sizeof(fullpath),"/etc/ps_pp.conf.d/ps_pp.conf");
+				goto again;
 			}
 			goto defaultcolor;
 		}

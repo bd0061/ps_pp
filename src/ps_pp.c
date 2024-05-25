@@ -22,7 +22,6 @@
 
 
 
-
 #define LOGO_HEIGHT 6
 
 #ifdef FORMAT_TABLE
@@ -1049,8 +1048,33 @@ int main(int argc, char ** argv)
 	        else if (ch == KEY_MOUSE && fps_size > 0 && !HELP_MODE) 
 	        {
 	            MEVENT event;
-	            if (getmouse(&event) == OK) {
-	                if (event.bstate & BUTTON1_PRESSED && event.y >= LIST_START /*&& event.x <= printno_export*/) {
+	            if (getmouse(&event) == OK) 
+	            {
+	                if (event.bstate & BUTTON4_PRESSED) //scroll up
+	                {
+						if(selectedLine > 0 && fps_size > 0)
+						{
+							if(cursy == 0 && start_pspp > 0)
+							{
+								start_pspp--;
+							}
+							selectedLine--;
+							refreshList();
+						}
+	                    
+	                } 
+	                else if (event.bstate & BUTTON5_PRESSED) //scroll down
+	                {
+	                	if(selectedLine < fps_size - 1)
+						{
+							selectedLine++;
+							if(selectedLine == y + start_pspp - GLOBAL_CURSE_OFFSET)
+								start_pspp++;
+							refreshList();
+						}
+	                  
+	                }
+	                else if (event.bstate & BUTTON1_PRESSED && event.y >= LIST_START /*&& event.x <= printno_export*/) {
 	                	selectedLine = start_pspp + event.y - LIST_START;
 	                }
 	            }
