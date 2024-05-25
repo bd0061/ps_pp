@@ -2,6 +2,16 @@
 #define HELPER_H
 #include<stddef.h>
 
+
+#define SORT_PID (1 << 0) 
+#define SORT_MEM (2 << 0) 
+#define SORT_PRIO (3 << 0) 
+#define SORT_CPU (4 << 0) 
+#define SORT_TIME (5 << 0) 
+#define SORT_TIME_OLDEST (6 << 0) 
+
+
+
 int num(char * s);
 void truncate_str(char * s, int n);
 size_t dno(long long a);
@@ -26,10 +36,12 @@ void printList(PROCESS_LL* head);
 void freeList(PROCESS_LL* head);
 
 
-void sortmem(PROCESS_LL **head);
-void sortCPU(PROCESS_LL **head);
-void sortPID(PROCESS_LL **head);
-void sortPrio(PROCESS_LL **head);
+// void sortmem(PROCESS_LL **head);
+// void sortCPU(PROCESS_LL **head);
+// void sortPID(PROCESS_LL **head);
+// void sortPrio(PROCESS_LL **head);
+// void sortTime(PROCESS_LL **head);
+void sort(PROCESS_LL **head, unsigned int flags);
 
 
 

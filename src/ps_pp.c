@@ -20,6 +20,9 @@
 #include "dynamic_array_manager.h"
 #include "systeminfo.h"
 
+
+
+
 #define LOGO_HEIGHT 6
 
 #ifdef FORMAT_TABLE
@@ -118,6 +121,8 @@ static void printhelpmenu()
 	mvprintw(helpline++,4,"[%c] - Sort by CPU%%",CPUSORT_KEY);
 	mvprintw(helpline++,4,"[%c] - Sort by MEM%%",MEMSORT_KEY);
 	mvprintw(helpline++,4,"[%c] - Sort by priority",PRIOSORT_KEY);
+	mvprintw(helpline++,4,"[%c] - Sort by starttime (oldest first)",TIMESORT_KEY_OLDEST);
+	mvprintw(helpline++,4,"[%c] - Sort by starttime (newest first)",TIMESORT_KEY);
 	mvprintw(helpline++,4,"[%c] - Display this help menu",HELP_KEY);
 	
 	helpline++;
@@ -481,7 +486,7 @@ static void print_header(char ** buffer, int buflength, char ** formats, int for
 	{
 		for(int j = 0; j < format_no; j++)
 		{
-			if(strcmp(buffer[i],formats[j]) == 0)
+			if(strcasecmp(buffer[i],formats[j]) == 0)
 			{
 
 
@@ -514,32 +519,33 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 		final[0] = '\0';
 		for(int i = 0; i < buflength; i++)
 		{
-			if (strcmp(buffer[i],"PID") == 0)	
+
+			if (strcasecmp(buffer[i],"PID") == 0)	
 			{	
 				PROCESSINFO t = start->info;
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*d %s",tabstart,formatvals[0],start->info.pid,tabbord);
 			}
-			else if (strcmp(buffer[i],"NAME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[1],start->info.name, tabbord);
-			else if (strcmp(buffer[i],"STATE") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*c %s",tabstart,formatvals[2],start->info.state,tabbord);
-			else if (strcmp(buffer[i],"PPID") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*d %s",tabstart,formatvals[3],start->info.ppid,tabbord);
-			else if (strcmp(buffer[i],"TTY") == 0) 			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[4],start->info.ttyname,tabbord);
-			else if (strcmp(buffer[i],"UTIME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[5],start->info.utime,tabbord);
-			else if (strcmp(buffer[i],"STIME") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[6],start->info.stime,tabbord);
-			else if (strcmp(buffer[i],"PRIO") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[7],start->info.prio,tabbord);
-			else if (strcmp(buffer[i],"NICE") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[8],start->info.nice,tabbord);
-			else if (strcmp(buffer[i],"THREADNO") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[9],start->info.threadno,tabbord);
-			else if (strcmp(buffer[i],"VIRT") == 0) 		
+			else if (strcasecmp(buffer[i],"NAME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[1],start->info.name, tabbord);
+			else if (strcasecmp(buffer[i],"STATE") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*c %s",tabstart,formatvals[2],start->info.state,tabbord);
+			else if (strcasecmp(buffer[i],"PPID") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*d %s",tabstart,formatvals[3],start->info.ppid,tabbord);
+			else if (strcasecmp(buffer[i],"TTY") == 0) 			snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[4],start->info.ttyname,tabbord);
+			else if (strcasecmp(buffer[i],"UTIME") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[5],start->info.utime,tabbord);
+			else if (strcasecmp(buffer[i],"STIME") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[6],start->info.stime,tabbord);
+			else if (strcasecmp(buffer[i],"PRIO") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[7],start->info.prio,tabbord);
+			else if (strcasecmp(buffer[i],"NICE") == 0)  		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[8],start->info.nice,tabbord);
+			else if (strcasecmp(buffer[i],"THREADNO") == 0) 	snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[9],start->info.threadno,tabbord);
+			else if (strcasecmp(buffer[i],"VIRT") == 0) 		
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[10],start->info.virt_display,tabbord);
 			}
-			else if (strcmp(buffer[i],"RES") == 0) 			
+			else if (strcasecmp(buffer[i],"RES") == 0) 			
 			{
 				//snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[11],start->info.res * (pgsz/1024),tabbord); // konvertuj stranice u kb*/
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[11],start->info.res_display,tabbord);
 			}
-			else if (strcmp(buffer[i],"OWNER") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[12],start->info.user,tabbord);
-			else if (strcmp(buffer[i],"MEM%") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*.2lf %s",tabstart,formatvals[13],((double)(start->info.res * (pgsz/1024))/memtotal) * 100,tabbord);
-			else if (strcmp(buffer[i],"CPU%") == 0)
+			else if (strcasecmp(buffer[i],"OWNER") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[12],start->info.user,tabbord);
+			else if (strcasecmp(buffer[i],"MEM%") == 0) 		snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*.2lf %s",tabstart,formatvals[13],((double)(start->info.res * (pgsz/1024))/memtotal) * 100,tabbord);
+			else if (strcasecmp(buffer[i],"CPU%") == 0)
 			{
 				unsigned long cur = start->cpuinfo.utime_cur + start->cpuinfo.stime_cur;
 				unsigned long prev = start->cpuinfo.utime_prev + start->cpuinfo.stime_prev;
@@ -549,7 +555,7 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 
 			}
 				
-			else if (strcmp(buffer[i],"START") == 0) 		
+			else if (strcasecmp(buffer[i],"START") == 0) 		
 			{
 				struct tm s;
 				getcurrenttime(&s);
@@ -566,93 +572,94 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%s%d%s %s",tabstart,months[start->info.start_struct.tm_mon],start->info.start_struct.tm_mday,start->info.start_struct.tm_mday < 10 ? " " : "" ,tabbord);
 				}
 			}
-			else if (strcmp(buffer[i],"SID") == 0) sprintf( final + strlen(final),"%s%-*d %s",tabstart,formatvals[16],start->info.sid,tabbord);
-			else if (strcmp(buffer[i],"PGRP") == 0) sprintf( final + strlen(final),"%s%-*d %s",tabstart,formatvals[17],start->info.pgrp,tabbord);
-			else if (strcmp(buffer[i],"C_WRITE") == 0) 
+			else if (strcasecmp(buffer[i],"SID") == 0) sprintf( final + strlen(final),"%s%-*d %s",tabstart,formatvals[16],start->info.sid,tabbord);
+			else if (strcasecmp(buffer[i],"PGRP") == 0) sprintf( final + strlen(final),"%s%-*d %s",tabstart,formatvals[17],start->info.pgrp,tabbord);
+			else if (strcasecmp(buffer[i],"C_WRITE") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.cancelled_write_bytes,start->ioinfo.io_blocked,0);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[18], br, tabbord);
 			}
-			else if (strcmp(buffer[i],"IO_READ") == 0) 
+			else if (strcasecmp(buffer[i],"IO_READ") == 0) 
 			{
 
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.read_bytes_cur,start->ioinfo.io_blocked,0);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[19], br, tabbord);
 			}
-			else if (strcmp(buffer[i],"IO_WRITE") == 0) 
+			else if (strcasecmp(buffer[i],"IO_WRITE") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.write_bytes_cur,start->ioinfo.io_blocked,0);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[20], br, tabbord);
 			}
-			else if (strcmp(buffer[i],"IO_READ/s") == 0) 
+			else if (strcasecmp(buffer[i],"IO_READ/S") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.read_bytes_cur - start->ioinfo.read_bytes_prev,start->ioinfo.io_blocked,1);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[21], br, tabbord);
 			}
-			else if (strcmp(buffer[i],"IO_WRITE/s") == 0) 
+			else if (strcasecmp(buffer[i],"IO_WRITE/S") == 0) 
 			{
 				char br[1024];
 				handle_io(br,sizeof(br),start->ioinfo.write_bytes_cur - start->ioinfo.write_bytes_prev,start->ioinfo.io_blocked,1);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[22], br, tabbord);
 			}
-			else if (strcmp(buffer[i],"SHR") == 0)
+			else if (strcasecmp(buffer[i],"SHR") == 0)
 			{
 				//snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lld %s",tabstart,formatvals[23], start->info.shr, tabbord);
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[23],start->info.shr_display,tabbord);
 			}
-			else if (strcmp(buffer[i],"MINFLT") == 0)
+			else if (strcasecmp(buffer[i],"MINFLT") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[24],start->info.minflt,tabbord);
 			}
-			else if (strcmp(buffer[i],"CMINFLT") == 0)
+			else if (strcasecmp(buffer[i],"CMINFLT") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[25],start->info.cminflt,tabbord);
 			}
-			else if (strcmp(buffer[i],"MAJFLT") == 0)
+			else if (strcasecmp(buffer[i],"MAJFLT") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[26],start->info.majflt,tabbord);
 			}
-			else if (strcmp(buffer[i],"CMAJFLT") == 0)
+			else if (strcasecmp(buffer[i],"CMAJFLT") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[27],start->info.cmajflt,tabbord);
 			}
-			else if (strcmp(buffer[i],"CUTIME") == 0)
+			else if (strcasecmp(buffer[i],"CUTIME") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[28],start->info.cutime / clock_ticks_ps,tabbord);
 			}
-			else if (strcmp(buffer[i],"CSTIME") == 0)
+			else if (strcasecmp(buffer[i],"CSTIME") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*ld %s",tabstart,formatvals[29],start->info.cstime / clock_ticks_ps,tabbord);
 			}
-			else if (strcmp(buffer[i],"RESLIM") == 0)
+			else if (strcasecmp(buffer[i],"RESLIM") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*lu %s",tabstart,formatvals[30],start->info.reslim,tabbord);
 			}
-			else if (strcmp(buffer[i],"EXITSIG") == 0)
+			else if (strcasecmp(buffer[i],"EXITSIG") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[31],strsignal(start->info.exitsig),tabbord);
 			}
-			else if (strcmp(buffer[i],"PROCNO") == 0)
+			else if (strcasecmp(buffer[i],"PROCNO") == 0)
 			{
 				snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*d %s",tabstart,formatvals[32],start->info.procno,tabbord);
 			}
-			else if (strcmp(buffer[i],"RTPRIO") == 0)
+			else if (strcasecmp(buffer[i],"RTPRIO") == 0)
 			{
 				if(start->info.rtprio != 0)
 					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*u %s",tabstart,formatvals[33],start->info.rtprio,tabbord);
 				else 
 					snprintf(final + strlen(final),sizeof(final) - strlen(final),"%s%-*s %s",tabstart,formatvals[33],"-",tabbord);
 			}
-			else if (strcmp(buffer[i],"POLICY") == 0)
+			else if (strcasecmp(buffer[i],"POLICY") == 0)
 			{
 				char * schedstring;
 
 				switch(start->info.policy)
 				{
+					case SCHED_RR:
 					case SCHED_OTHER:
 						schedstring = "RR";
 						break;
@@ -665,9 +672,6 @@ static void collect_data(char ** buffer, int buflength, PROCESS_LL * start)
 					case SCHED_FIFO:
 						schedstring = "FCFS";
 						break;
-					case SCHED_RR:
-						schedstring = "RR";
-						break; 
 					default:
 						schedstring = "?";
 				}
@@ -721,7 +725,8 @@ static void refreshList()
 }
 
 
-static void displayScreen(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
+static void 
+displayScreen(char ** fbuf, int fno, char ** dformats, int dformatno, char ** formats, int format_no, int * printno_export)
 {
 	print_upper_menu_and_mod_offset(fbuf,fno,dformats,dformatno,formats,format_no,printno_export);
 	refreshList();
@@ -729,12 +734,9 @@ static void displayScreen(char ** fbuf, int fno, char ** dformats, int dformatno
 
 
 
-static void sortRefresh(int memSort, int cpuSort, int normalSort, int prioSort)
+static void sortRefresh(unsigned int flags)
 {
-    if(memSort) sortmem(&head);
-    else if(cpuSort) sortCPU(&head);
-    else if(normalSort) sortPID(&head); 
-    else if(prioSort) sortPrio(&head);
+    sort(&head,flags);
 }
 
 
@@ -750,7 +752,7 @@ static void updateSysinfo()
 /*ponovo pokupi podatke u spregnutu listu, obrisi mrtve procese i procese koji nam vise ne trebaju za trenutnu selekciju. */
 static void updateListInternal
 (int * pid_args, int pno, char ** ubuffer, int uno, char ** nbuffer, int nno,int fno, char ** fbuffer, char ** default_formats, int default_format_no, char ** formats, int format_no,
-int memSort, int cpuSort, int prioSort, int normalSort)
+unsigned int flags)
 {
 	for(int i = 0; i < format_no; i++)
 	{
@@ -762,7 +764,7 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 
 	clear_and_reset_array(&fps, &fps_size);
     findprocs(&head, pid_args, pno, ubuffer, uno,nbuffer,nno,fbuffer,fno);
-	sortRefresh(memSort,cpuSort,normalSort,prioSort);
+	sortRefresh(flags);
 
 	start = head;
 	while(start != NULL)
@@ -799,15 +801,16 @@ int memSort, int cpuSort, int prioSort, int normalSort)
 static void 
 criticalSection
 (int * pid_args, int pno, char ** ubuffer, int uno, char ** nbuffer, int nno,int fno, char ** fbuffer, char ** default_formats, int default_format_no, char ** formats, int format_no,
-int memSort, int cpuSort, int prioSort, int normalSort)
+unsigned int flags)
 {
 		updateSysinfo();
-    	updateListInternal(pid_args, pno, ubuffer, uno, nbuffer, nno, fno, fbuffer, default_formats, default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+    	updateListInternal(pid_args, pno, ubuffer, uno, nbuffer, nno, fno, fbuffer, default_formats, default_format_no,formats, format_no,flags);
 }
 
 
 int main(int argc, char ** argv)
 {
+	unsigned int flags = SORT_PID;
 	get_mount_point();
 	NAME_FILTER[0] = '\0';
 	FILTERING = 0;
@@ -816,10 +819,6 @@ int main(int argc, char ** argv)
 	int clscFormat;
 	int customFormat;
 	int printno_export;
-	int memSort;
-	int normalSort;
-	int cpuSort;
-	int prioSort;
 	int pid_args[500];
     //sve podrzane informacije o procesima
 	char *formats[] = 		  
@@ -858,10 +857,6 @@ int main(int argc, char ** argv)
 	int use_custom = 0;
 	
 	int current = REFRESH_RATE;
-	memSort = 0;
-	normalSort = 1;
-	cpuSort = 0;
-	prioSort = 0;
 	jFormat = 0;
 	ioFormat = 0;
 	
@@ -924,7 +919,7 @@ int main(int argc, char ** argv)
 		getmaxyx(stdscr,y,x);
 		fps_saved = fps_size;
 
-		sortRefresh(memSort,cpuSort,normalSort,prioSort);
+		sortRefresh(flags);
 		long long afterCritical = getTimeInMilliseconds();
 
 
@@ -933,7 +928,7 @@ int main(int argc, char ** argv)
 	    	first_pspp = 0;
 	    	beforeCritical = afterCritical;
 
-			criticalSection(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats,format_no,memSort,cpuSort,prioSort,normalSort);
+			criticalSection(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats,format_no,flags);
 
 			if(!HELP_MODE)
 			{
@@ -1091,7 +1086,7 @@ int main(int argc, char ** argv)
 					snprintf(INFOMSG,sizeof(INFOMSG),"\tKilled [%d]\t",fps[selectedLine].pid);
 					SUCCESS = 1;
 					countDown = 5;
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					clear();
 					if(selectedLine > 0 && fps_size > 0)
 					{
@@ -1118,7 +1113,7 @@ int main(int argc, char ** argv)
 					snprintf(INFOMSG,sizeof(INFOMSG),"\tKilled [%d] (SIGKILL)\t",fps[selectedLine].pid);
 					SUCCESS = 1;
 					countDown = 5;
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					clear();
 					if(selectedLine > 0 && fps_size > 0)
 					{
@@ -1168,7 +1163,7 @@ int main(int argc, char ** argv)
 				cl[0] = "PID";cl[1] = "PPID";cl[2] = "PGRP";cl[3] = "SID";cl[4] = "NAME";
 				*j = 5;
 				
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -1207,7 +1202,7 @@ int main(int argc, char ** argv)
 				cl[5] = "C_WRITE";
 				cl[6] = "NAME";
 				*j = 7;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -1255,64 +1250,74 @@ int main(int argc, char ** argv)
 				cl[12] = "START";
 				cl[13] = "NAME";
 				*j = 14;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
-			else if(ch == MEMSORT_KEY && fps_size > 0 && !memSort && !HELP_MODE)
+			else if(ch == MEMSORT_KEY && fps_size > 0 && flags != SORT_MEM && !HELP_MODE)
 			{
-				memSort = 1;
-				normalSort = 0;
-				cpuSort = 0;
-				prioSort = 0;
+				flags = SORT_MEM;
 				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by mem\t");
 				SUCCESS = 1;
 				countDown = 5;
-				sortmem(&head);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				sort(&head,flags);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
-			else if(ch == CPUSORT_KEY && fps_size > 0 && !cpuSort && !HELP_MODE)
+			else if(ch == TIMESORT_KEY && fps_size > 0 && flags != SORT_TIME && !HELP_MODE)
 			{
-				cpuSort = 1;
-				normalSort = 0;
-				memSort = 0;
-				prioSort = 0;
+				flags = SORT_TIME;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by start time (newest first)\t");
+				SUCCESS = 1;
+				countDown = 5;
+				sort(&head,flags);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == TIMESORT_KEY_OLDEST && fps_size > 0 && flags != SORT_TIME_OLDEST && !HELP_MODE)
+			{
+				flags = SORT_TIME_OLDEST;
+				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by start time (oldest first)\t");
+				SUCCESS = 1;
+				countDown = 5;
+				sort(&head,flags);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
+				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
+
+			}
+			else if(ch == CPUSORT_KEY && fps_size > 0 && flags != SORT_CPU && !HELP_MODE)
+			{
+				flags = SORT_CPU;
 				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by CPU%%\t");
 				SUCCESS = 1;
 				countDown = 5;
-				sortCPU(&head);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				sort(&head,flags);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
-			else if(ch == NORMALSORT_KEY && fps_size > 0 && !normalSort && !HELP_MODE)
+			else if(ch == NORMALSORT_KEY && fps_size > 0 && flags != SORT_PID && !HELP_MODE)
 			{
-				cpuSort = 0;
-				normalSort = 1;
-				memSort = 0;
-				prioSort = 0;
+				flags = SORT_PID;
 				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by default(PID)\t");
 				SUCCESS = 1;
 				countDown = 5;
-				sortPID(&head);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				sort(&head,SORT_PID);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
-			else if(ch == PRIOSORT_KEY && fps_size > 0 && !prioSort && !HELP_MODE)
+			else if(ch == PRIOSORT_KEY && fps_size > 0 && flags != SORT_PRIO && !HELP_MODE)
 			{
-				cpuSort = 0;
-				normalSort = 0;
-				memSort = 0;
-				prioSort = 1;
+				flags = SORT_PRIO;
 				
 				snprintf(INFOMSG,sizeof(INFOMSG),"\tNow sorting by priority\t");
 				SUCCESS = 1;
 				countDown = 5;
 				
-				sortPrio(&head);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				sort(&head,flags);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 
 			}
@@ -1343,7 +1348,7 @@ int main(int argc, char ** argv)
 					}
 					f.no = saved_custom_length;
 					
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				}
 			}
@@ -1351,7 +1356,7 @@ int main(int argc, char ** argv)
 			{
 				start_pspp = 0;
 				selectedLine = 0;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				
 
@@ -1364,7 +1369,7 @@ int main(int argc, char ** argv)
 				selectedLine = fps_size - 1;
 				if(fps_size > y - LIST_START)
 					start_pspp = fps_size -(y - LIST_START);
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				
 
@@ -1389,7 +1394,7 @@ int main(int argc, char ** argv)
 						snprintf(INFOMSG,sizeof(INFOMSG),"\t%s nice for [%d]",ch == NICEPLUS_KEY ? "Incremented" : "Decremented",fps[selectedLine].pid);
 						SUCCESS = 1;
 						countDown = 5;
-						updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+						updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 						displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 					}
 					else 
@@ -1409,7 +1414,7 @@ int main(int argc, char ** argv)
 					snprintf(INFOMSG,sizeof(INFOMSG),"%suspended [%d]",fps[selectedLine].s == 'T' ? "Uns" : "S",fps[selectedLine].pid);
 					SUCCESS = 1;
 					countDown = 5;
-					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+					updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 					displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 				}
 				else 
@@ -1454,7 +1459,7 @@ int main(int argc, char ** argv)
 				print_art();
 				selectedLine = 0;
 				start_pspp = 0;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
 			else if(ch == KEY_BACKSPACE && strlen(NAME_FILTER) > 0)
@@ -1464,7 +1469,7 @@ int main(int argc, char ** argv)
 				print_art();
 				selectedLine = 0;
 				start_pspp = 0;
-				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,memSort,cpuSort,prioSort,normalSort);
+				updateListInternal(pid_args,p.no,u.buffer,u.no,n.buffer,n.no,f.no,f.buffer,default_formats,default_format_no,formats, format_no,flags);
 				displayScreen(f.buffer, f.no, default_formats, default_format_no, formats, format_no, &printno_export);
 			}
 		}

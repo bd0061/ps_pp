@@ -6,10 +6,12 @@
 #include <pwd.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <ctype.h>
 #include "structures.h"
 #include "helper.h"
 
 #include "parseopts.h"
+
 
 /* nakon uspesnog parsiranja argumenata, ova funkcija radi sledece:
  * 1) proverava da li su sve snabdevene proces informacije legitimne(postoje kao opcija)
@@ -20,12 +22,14 @@ void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int forma
 				 char ** pidbuffer, int pidlen,
 				 char ** userbuffer, int userlen)
 {
+	char * t = NULL;
 	for(int i = 0; i < formatlen; i++)
 	{
 		int ok = 0;
 		for(int j = 0; j < format_no; j++)
 		{
-			if(strcmp(formatbuffer[i],formats[j]) == 0)
+			t = formatbuffer[i];
+			if(strcasecmp(formatbuffer[i],formats[j]) == 0)
 			{
 				ok = 1;
 				break;
@@ -40,6 +44,14 @@ void sanitycheck(char ** formatbuffer, int formatlen, char ** formats, int forma
 				fprintf(stderr,"%s%s",formats[k], k != format_no - 1 ? "," : "]\n");
 			}
 			exit(EXIT_FAILURE);
+		}
+		if(t != NULL)
+		{
+			while(*t)
+			{
+				*t = toupper(*t);
+				t++;
+			}
 		}
 
 	}
@@ -156,7 +168,7 @@ void parseopts(char ** argv, struct arg_parse * argp)
 	++argv;
 	while(*argv != NULL)
 	{
-		if(newargcheck(*argv,argp))
+		if(newargcheck(*argv,argp)) //da li smo naisli na novu opciju?
 		{
 			if(countargs == 0) // vec novi switch bez bar jednog argumenta za prethodni
 			{

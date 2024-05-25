@@ -30,5 +30,7 @@ extern char NICEMINUS_KEY;
 extern char TOGGLESUSPEND_KEY;
 extern char KILLKILL_KEY;
 extern int NOLOGO;
+extern char TIMESORT_KEY;
+extern char TIMESORT_KEY_OLDEST;
 
 #endif

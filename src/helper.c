@@ -2,12 +2,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <time.h>
 #include "structures.h"
 #include "helper.h"
 
 extern long btime;
 extern long clock_ticks_ps;
 extern int formatvals[35];
+
+unsigned int flags;
 
 /*jednostavan algoritam za konverziju vremena u sekundama u dane, sate, minute, i preostale sekunde. 
 (koristi se kod racunanje uptime-a) */
@@ -108,11 +111,11 @@ int in(int * arr , int a, int l)
 
 
 void addElement(PROCESS_LL** head, PROCESSINFO newInfo, PROCESSINFO_IO newIOInfo, CPUINFO newCPUinfo) {
-    //ako proces vec postoji, samo mu updejtujemo podatke
+    
     PROCESS_LL* trav = *head;
 
     while (trav != NULL) {
-        
+        //ako proces vec postoji, samo mu updejtujemo podatke
         if(trav->info.pid == newInfo.pid)
         {
             trav->info = newInfo;//napomena: u newInfo bufferu jedina io informacija je read(write)_t
@@ -218,6 +221,22 @@ void freeList(PROCESS_LL* head) {
     }
 }
 
+
+static int compareByTime(const void *a, const void *b)
+{
+    const PROCESS_LL * nodeA = *(const PROCESS_LL **)a;
+    const PROCESS_LL * nodeB = *(const PROCESS_LL **)b;
+
+    return nodeB->info.starttime_secs - nodeA->info.starttime_secs;
+}
+static int compareByTime_oldest(const void *a, const void *b)
+{
+    const PROCESS_LL * nodeA = *(const PROCESS_LL **)a;
+    const PROCESS_LL * nodeB = *(const PROCESS_LL **)b;
+
+    return nodeA->info.starttime_secs - nodeB->info.starttime_secs;
+}
+
 static int compareByRes(const void *a, const void *b) {
     const PROCESS_LL *nodeA = *(const PROCESS_LL **)a;
     const PROCESS_LL *nodeB = *(const PROCESS_LL **)b;
@@ -273,114 +292,9 @@ static int compareCPU(const void *a, const void *b) {
     }
 }
 
-
-
-void sortmem(PROCESS_LL **head) {
-     if (*head == NULL) {
-        return;
-    }
-    size_t count = 0;
-    PROCESS_LL *temp = *head;
-    while (temp != NULL) {
-        count++;
-        temp = temp->next;
-    }
-    PROCESS_LL **tempArray = (PROCESS_LL **)malloc(count * sizeof(PROCESS_LL *));
-    if (tempArray == NULL) {
-        return;
-    }
-
-    temp = *head;
-    for (size_t i = 0; i < count; i++) {
-        tempArray[i] = temp;
-        temp = temp->next;
-    }
-
-    qsort(tempArray, count, sizeof(PROCESS_LL *), compareByRes);
-
-    *head = tempArray[0];
-    temp = *head;
-    for (size_t i = 1; i < count; i++) {
-        temp->next = tempArray[i];
-        temp = temp->next;
-    }
-    temp->next = NULL;
-
-    free(tempArray);
-}
-
-void sortCPU(PROCESS_LL **head) {
-    if (*head == NULL) {
-        return;
-    }
-    size_t count = 0;
-    PROCESS_LL *temp = *head;
-    while (temp != NULL) {
-        count++;
-        temp = temp->next;
-    }
-
-    PROCESS_LL **tempArray = (PROCESS_LL **)malloc(count * sizeof(PROCESS_LL *));
-    if (tempArray == NULL) {
-        return;
-    }
-
-    temp = *head;
-    for (size_t i = 0; i < count; i++) {
-        tempArray[i] = temp;
-        temp = temp->next;
-    }
-
-    qsort(tempArray, count, sizeof(PROCESS_LL *), compareCPU);
-    *head = tempArray[0];
-    temp = *head;
-    for (size_t i = 1; i < count; i++) {
-        temp->next = tempArray[i];
-        temp = temp->next;
-    }
-    temp->next = NULL;
-    free(tempArray);
-}
-
-void sortPID(PROCESS_LL **head)
+void sort(PROCESS_LL **head, unsigned int flags)
 {
-    if (*head == NULL) {
-        return;
-    }
-    size_t count = 0;
-    PROCESS_LL *temp = *head;
-    while (temp != NULL) {
-        count++;
-        temp = temp->next;
-    }
-    PROCESS_LL **tempArray = (PROCESS_LL **)malloc(count * sizeof(PROCESS_LL *));
-    if (tempArray == NULL) {
-        return;
-    }
-
-    temp = *head;
-    for (size_t i = 0; i < count; i++) {
-        tempArray[i] = temp;
-        temp = temp->next;
-    }
-
-    qsort(tempArray, count, sizeof(PROCESS_LL *), comparePID);
-
-    *head = tempArray[0];
-    temp = *head;
-    for (size_t i = 1; i < count; i++) {
-        temp->next = tempArray[i];
-        temp = temp->next;
-    }
-    temp->next = NULL;
-
-    free(tempArray);
-
-
-}
-
-void sortPrio(PROCESS_LL **head)
-{
+    int (*compar)(const void *, const void *);
     if (*head == NULL) {
         return;
     }
@@ -403,8 +317,37 @@ void sortPrio(PROCESS_LL **head)
         tempArray[i] = temp;
         temp = temp->next;
     }
+    
 
-    qsort(tempArray, count, sizeof(PROCESS_LL *), comparePrio);
+
+    if(flags == SORT_MEM)
+    {                
+        compar = compareByRes;
+    }
+
+    else if(flags == SORT_CPU)
+    {
+
+        compar = compareCPU;
+    }
+    else if(flags == SORT_PRIO)
+    {
+        compar = comparePrio;
+    }
+    else if(flags == SORT_PID)
+    {
+        compar = comparePID;
+    }
+    else if(flags == SORT_TIME)
+    {
+        compar = compareByTime;
+    }
+    else if(flags == SORT_TIME_OLDEST)
+    {
+        compar = compareByTime_oldest;
+    }
+    qsort(tempArray, count, sizeof(PROCESS_LL *), compar);
+
 
     *head = tempArray[0];
     temp = *head;
